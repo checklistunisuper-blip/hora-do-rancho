@@ -1,0 +1,32 @@
+name: Coletar ofertas reais (Zaffari, Carrefour...)
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rodar o coletor
+        run: python3 scripts/scraper/scrape_vtex.py
+
+      - name: Commitar o arquivo de ofertas atualizado
+        run: |
+          git config user.name "hora-do-rancho-bot"
+          git config user.email "actions@github.com"
+          git add assets/data/scraped-offers.json
+          git diff --cached --quiet && echo "Nenhuma mudança nas ofertas hoje." || git commit -m "chore: atualizar ofertas coletadas ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+          git push
