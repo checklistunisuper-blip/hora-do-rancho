@@ -1,0 +1,40 @@
+{
+  "_comentario": "Cada rede aqui usa a API pública de busca da plataforma VTEX (catalog_system/pub/products/search), a mesma que o site de compras online da rede usa. matchKeywords é usado para casar o produto coletado com o mercado físico certo entre os encontrados pelo Overpass/OpenStreetMap perto do usuário (comparando com o nome do mercado no mapa).",
+  "redes": [
+    {
+      "id": "zaffari",
+      "nomeExibicao": "Zaffari",
+      "apiBase": "https://www.zaffari.com.br",
+      "matchKeywords": ["zaffari", "bourbon"]
+    },
+    {
+      "id": "carrefour",
+      "nomeExibicao": "Carrefour",
+      "apiBase": "https://mercado.carrefour.com.br",
+      "matchKeywords": ["carrefour"]
+    },
+    {
+      "id": "stok-center",
+      "nomeExibicao": "Stok Center",
+      "apiBase": "https://www.stokonline.com.br",
+      "matchKeywords": ["stok center", "stok online", "stok"]
+    },
+    {
+      "id": "rissul",
+      "nomeExibicao": "Rissul",
+      "apiBase": "https://www.rissul.com.br",
+      "matchKeywords": ["rissul"]
+    }
+  ],
+  "termosPorCategoria": {
+    "acougue": ["file de frango", "carne bovina", "linguica", "carne moida", "picanha"],
+    "laticinios": ["leite integral", "queijo mussarela", "manteiga", "iogurte", "requeijao"],
+    "hortifruti": ["banana", "tomate", "batata", "alface", "cebola"],
+    "mercearia-seca": ["arroz", "feijao", "acucar", "cafe", "macarrao"],
+    "mercearia-liquida": ["oleo de soja", "vinagre", "molho de tomate"],
+    "limpeza": ["detergente", "sabao em po", "agua sanitaria", "amaciante"],
+    "perfumaria": ["shampoo", "sabonete", "creme dental", "papel higienico"],
+    "bazar": ["pilha", "guardanapo", "vela"],
+    "sazonal": ["panetone", "ovo de pascoa", "chocolate"]
+  }
+}

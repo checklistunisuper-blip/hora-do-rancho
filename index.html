@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>HORA DO RANCHO — Compare preços. Economize mais.</title>
+  <meta name="description" content="Compare preços de supermercados perto de você e economize no rancho." />
+  <meta name="theme-color" content="#1b7a3d" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./assets/icons/favicon.ico" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-180x180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Hora do Rancho" />
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="./style.css" />
+
+  <!-- Leaflet (mapa open source, gratuito, sem chave de API) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</head>
+<body>
+
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splash" class="splash-screen">
+    <img src="./assets/icons/icon-192x192.png" alt="Hora do Rancho" />
+    <div class="splash-spinner"></div>
+    <span class="splash-company">WP DIGITAL VAREJO</span>
+  </div>
+
+  <!-- ===== APP SHELL ===== -->
+  <div id="app">
+    <main id="app-outlet"></main>
+    <div id="bottom-nav-slot"></div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
