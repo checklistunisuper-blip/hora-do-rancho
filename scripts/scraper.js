@@ -68,10 +68,23 @@ async function runScraper() {
 
   await browser.close();
 
-  // Salva o resultado no diretório estático público (public/data/ofertas-capturadas.json)
+  // Estrutura o payload incluindo metadados de atualização recente
+  const payload = {
+    updatedAt: new Date().toISOString(),
+    dataFormatada: new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    ofertasPorMercado: updatedOffers
+  };
+
+  // Salva o resultado no diretório público estático
   const outputPath = path.resolve('public/data/ofertas-capturadas.json');
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, JSON.stringify(updatedOffers, null, 2), 'utf-8');
+  await fs.writeFile(outputPath, JSON.stringify(payload, null, 2), 'utf-8');
   console.log(`💾 Ofertas salvas com sucesso em: ${outputPath}`);
 }
 
