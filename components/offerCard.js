@@ -11,6 +11,7 @@ export function offerCard(offer, { mercadoNome = "", isFavorite = false, destaqu
         <p class="offer-card__validity">Válido até ${formatarData(offer.validade)}</p>
       </div>
       <div class="offer-card__price-col">
+        ${offer.precoOriginal ? `<span class="offer-card__price-original">${formatarMoeda(offer.precoOriginal)}</span>` : ""}
         <span class="offer-card__price">${formatarMoeda(offer.preco)}</span>
         <button class="icon-btn favorite-toggle" data-tipo="produto" data-ref-id="${offer.nome}"
           aria-label="Favoritar produto" aria-pressed="${isFavorite}">
