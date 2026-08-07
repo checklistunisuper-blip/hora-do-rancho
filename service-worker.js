@@ -1,10 +1,10 @@
 /**
  * service-worker.js — cache offline do App Shell (Cache API).
  * Estratégia: cache-first para arquivos estáticos, network-first para
- * chamadas de API (Overpass/Nominatim), com fallback gracioso.
+ * chamadas de API (Overpass/Nominatim/Google Maps), com fallback gracioso.
  */
 
-const CACHE_NAME = "hora-do-rancho-v4";
+const CACHE_NAME = "hora-do-rancho-v1.0.1";
 
 const APP_SHELL = [
   "./",
@@ -13,12 +13,10 @@ const APP_SHELL = [
   "./manifest.json",
   "./config/redes.json",
   "./assets/data/scraped-offers.json",
+  "./assets/icons/favicon.ico",
   "./assets/icons/icon-192x192.png",
   "./assets/icons/icon-512x512.png",
-  "./assets/icons/maskable-512x512.png",
-  "./assets/screenshots/screen-mobile.png",
-  "./assets/screenshots/screen-desktop.png",
-  "./src/main.js",
+  "./main.js",
   "./src/config/config.js",
   "./src/utils/router.js",
   "./src/utils/format.js",
@@ -90,11 +88,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // APIs externas (Overpass/Nominatim/tiles): network-first, cai para o cache se offline
+  // APIs externas (Overpass/Nominatim/Google Maps/Tiles): network-first, cai para o cache se offline
   const isExternalApi =
-    url.hostname.includes("overpass-api.de") ||
-    url.hostname.includes("nominatim.openstreetmap.org") ||
-    url.hostname.includes("tile.openstreetmap.org");
+    url.hostname.includes("overpass") ||
+    url.hostname.includes("nominatim") ||
+    url.hostname.includes("google.com") ||
+    url.hostname.includes("openstreetmap.org") ||
+    url.hostname.includes("ui-avatars.com");
 
   if (isExternalApi) {
     event.respondWith(
