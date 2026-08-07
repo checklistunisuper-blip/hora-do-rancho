@@ -1,8 +1,7 @@
 /**
  * encarteExtractionService.js
  * Front-end: converte a imagem enviada pelo usuário e chama a função
- * serverless (netlify/functions/extract-encarte.js) que faz a leitura via IA.
- * A chave de API nunca fica no navegador — só na função serverless.
+ * serverless para leitura via IA.
  */
 export const encarteExtractionService = {
   /**
@@ -11,8 +10,17 @@ export const encarteExtractionService = {
    * @returns {Promise<{produtos: Array, observacao: string|null}>}
    */
   async extrairDeImagem(arquivoImagem, contexto = {}) {
+    // Validação de tipo de arquivo no frontend
+    if (!arquivoImagem.type.startsWith("image/")) {
+      throw new Error("Por favor, selecione um arquivo de imagem válido (JPG, PNG, WEBP).");
+    }
+
     const base64 = await this._arquivoParaBase64(arquivoImagem);
-    const resposta = await fetch("/.netlify/functions/extract-encarte", {
+
+    // Altere a URL aqui caso o seu backend esteja em outro serviço fora do Netlify
+    const endpoint = "/.netlify/functions/extract-encarte";
+
+    const resposta = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -23,8 +31,14 @@ export const encarteExtractionService = {
     });
 
     if (!resposta.ok) {
-      const erro = await resposta.text().catch(() => "");
-      throw new Error(`Falha ao processar o encarte (${resposta.status}): ${erro}`);
+      let mensagemErro = "";
+      try {
+        const jsonErro = await resposta.json();
+        mensagemErro = jsonErro.message || jsonErro.error;
+      } catch {
+        mensagemErro = await resposta.text().catch(() => "");
+      }
+      throw new Error(`Falha ao processar o encarte (${resposta.status}): ${mensagemErro || 'Erro desconhecido'}`);
     }
 
     const dados = await resposta.json();
@@ -35,10 +49,13 @@ export const encarteExtractionService = {
     return new Promise((resolve, reject) => {
       const leitor = new FileReader();
       leitor.onload = () => {
-        // remove o prefixo "data:image/jpeg;base64," antes de mandar
         const resultado = leitor.result;
-        const base64 = String(resultado).split(",")[1];
-        resolve(base64);
+        if (typeof resultado === "string" && resultado.includes(",")) {
+          const base64 = resultado.split(",")[1];
+          resolve(base64);
+        } else {
+          reject(new Error("Formato de leitura da imagem inválido."));
+        }
       };
       leitor.onerror = () => reject(new Error("Não foi possível ler o arquivo de imagem."));
       leitor.readAsDataURL(arquivo);
