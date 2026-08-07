@@ -1,22 +1,24 @@
 /**
  * src/services/offersService.js
- * Serviço de ofertas resiliente contra erros de importação.
+ * Serviço de ofertas unificado com busca web via Gemini.
  */
 
 import { APP_CONFIG } from "../config/config.js";
 
 export const offersService = {
   /**
-   * Busca todas as ofertas para os mercados informados.
+   * Busca ofertas para uma lista de mercados.
    */
   async fetchAllOffers(markets = [], context = {}) {
     if (!markets || !markets.length) return [];
 
     let ofertas = [];
 
-    // 1. Tenta carregar do provedor de raspagem/feed se disponível
+    // 1. Tenta buscar ofertas no provedor local (ScrapedFeedProvider)
     try {
-      const { scrapedProvider } = await import("./offerProviders/ScrapedFeedProvider.js").catch(() => ({}));
+      const providerModule = await import("./offerProviders/ScrapedFeedProvider.js").catch(() => ({}));
+      const scrapedProvider = providerModule.scrapedProvider || providerModule.default;
+
       if (scrapedProvider?.fetchOffers) {
         const marketIds = markets.map((m) => m.id);
         ofertas = await scrapedProvider.fetchOffers({ marketIds, markets, ...context }).catch(() => []);
@@ -25,10 +27,10 @@ export const offersService = {
       console.warn("[offersService] Provedor local indisponível:", e);
     }
 
-    // 2. Se não encontrou ofertas no feed, busca na web via Gemini
+    // 2. Se não houver ofertas locais, consulta a web via Gemini para o primeiro mercado
     if (!ofertas.length && markets[0]) {
       const primeiroMercado = markets[0];
-      const nomeMercado = primeiroMercado.nome || primeiroMercado.rede || "Mercado";
+      const nomeMercado = primeiroMercado.nome || primeiroMercado.rede || "Mercado Local";
       const cidade = context.municipio || context.cidade || "";
       const estado = context.estado || "";
 
@@ -48,7 +50,7 @@ export const offersService = {
       }
     }
 
-    // 3. Salva no Storage se o storageService estiver operacional
+    // 3. Salva no Storage se operacional
     try {
       const storageModule = await import("./storageService.js").catch(() => ({}));
       const storageService = storageModule.storageService || storageModule.default;
@@ -58,14 +60,14 @@ export const offersService = {
         await storageService.putMany(storeName, ofertas).catch(() => {});
       }
     } catch (e) {
-      console.warn("[offersService] Não foi possível salvar em cache local:", e);
+      console.warn("[offersService] Falha ao persistir ofertas:", e);
     }
 
     return ofertas;
   },
 
   /**
-   * Função para chamar a Netlify Function do Gemini Search Grounding
+   * Chamada direta para a Netlify Function do Gemini Search Grounding
    */
   async buscarOfertasNaWeb(nomeMercado, cidade = "", estado = "") {
     const endpoint = window.location.hostname.includes("github.io")
@@ -83,14 +85,12 @@ export const offersService = {
         throw new Error(`Status HTTP: ${response.status}`);
       }
 
-      const dados = await response.json();
-      return dados;
+      return await response.json();
     } catch (error) {
-      console.warn(`[offersService] Falha na requisição para ${nomeMercado}:`, error);
+      console.warn(`[offersService] Erro na busca de ofertas para ${nomeMercado}:`, error);
       return { mercado: nomeMercado, ofertas: [], observacao: null };
     }
   }
 };
 
-// Exportação padrão para compatibilidade universal
 export default offersService;
