@@ -12,11 +12,15 @@ export const APP_CONFIG = {
 
   // Raio de busca de mercados (em km)
   searchRadiusKm: 10,
-
-  // Overpass API (OpenStreetMap) — busca de supermercados por geolocalização, 100% gratuito
+// Overpass API (OpenStreetMap) — com fallbacks em caso de Gateway Timeout
   overpass: {
-    endpoint: "https://overpass-api.de/api/interpreter",
+    endpoints: [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter",
+      "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+    ],
   },
+  
 
   // Nominatim (OpenStreetMap) — geocodificação reversa (estado/município/bairro), gratuito
   nominatim: {
