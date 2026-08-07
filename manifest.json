@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Hora do Rancho — Compare preços e economize",
   "short_name": "Hora do Rancho",
   "description": "Compare preços de supermercados perto de você, monte sua lista de rancho dentro do orçamento e economize.",
@@ -24,6 +25,22 @@
     { "src": "assets/icons/icon-384x384.png", "sizes": "384x384", "type": "image/png" },
     { "src": "assets/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "assets/icons/maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/screenshots/screen-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Busca de ofertas e lista de supermercados"
+    },
+    {
+      "src": "assets/screenshots/screen-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Painel de comparação de preços e mapa de supermercados"
+    }
   ],
   "shortcuts": [
     {
