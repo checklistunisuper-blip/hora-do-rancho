@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-scrape_vtex.py (agora com suporte a OCR)
+scrape_vtex.py
 Coleta as OFERTAS REAIS anunciadas publicamente pelas redes configuradas em
 config/redes.json, combinando:
 1) API pública VTEX (Zaffari, Carrefour, Stok Center, Rissul).
-2) Leitura de Encartes e Mídias Sociais via OCR + Web Scraping (UniAtacadista, Asun, Macromix, etc.).
+2) Leitura de Encartes e Mídias Sociais via OCR (UniAtacadista, Asun, Macromix, etc.).
 
-Saída: assets/data/scraped-offers.json, no formato consumido pelo PWA.
+Possui proteção contra arquivo vazio: se a coleta falhar totalmente, ele preserva
+as ofertas salvas anteriormente.
 """
 
 import json
@@ -18,12 +19,15 @@ import urllib.parse
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
-# Bibliotecas para processamento de OCR e Imagens
-import cv2
-import numpy as np
-import pytesseract
-from PIL import Image
-from bs4 import BeautifulSoup
+# Tratamento para evitar que a ausência de libs visuais quebre o script todo
+OCR_DISPONIVEL = True
+try:
+    import cv2
+    import pytesseract
+    from bs4 import BeautifulSoup
+except ImportError as e:
+    OCR_DISPONIVEL = False
+    print(f"  [aviso] Dependências de OCR não encontradas ({e}). Rodando apenas modo VTEX.")
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "config" / "redes.json"
@@ -35,7 +39,7 @@ REQUEST_DELAY_SECONDS = 1.5
 PRODUTOS_POR_PAGINA = 50
 MAX_PAGINAS_POR_COLECAO = 6
 
-# Regex para extração de preços e unidades dos encartes lidos por OCR
+# Regex para extração de preços e unidades via OCR
 PADRAO_OFERTA_OCR = re.compile(
     r'(?P<produto>[A-Za-zÀ-ÿ0-9\s%\.\-]+?)\s+'
     r'(?:De\s*R\$\s*\d+[\.,]\d{2}\s*)?'
@@ -111,129 +115,135 @@ def extrair_ofertas_vtex(produtos_vtex, rede_id, rede_nome, mapa_categoria_por_p
     validade = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
 
     for produto in produtos_vtex:
-        nome_produto = produto.get("productName", "").strip()
-        marca = produto.get("brand", "").strip()
-        itens = produto.get("items", [])
-        if not nome_produto or not itens:
+        try:
+            nome_produto = produto.get("productName", "").strip()
+            marca = produto.get("brand", "").strip()
+            itens = produto.get("items", [])
+            if not nome_produto or not itens:
+                continue
+
+            sku = itens[0]
+            imagem = sku.get("images", [{}])[0].get("imageUrl") if sku.get("images") else None
+            vendedores = sku.get("sellers", [])
+            if not vendedores:
+                continue
+
+            oferta_comercial = vendedores[0].get("commertialOffer", {})
+            preco = oferta_comercial.get("Price")
+            preco_de = oferta_comercial.get("ListPrice")
+            disponivel = oferta_comercial.get("IsAvailable", False)
+
+            if not preco or preco <= 0 or not disponivel:
+                continue
+
+            categoria = categoria_fixa or detectar_categoria(nome_produto, mapa_categoria_por_palavra)
+
+            ofertas.append({
+                "nome": nome_produto,
+                "marca": marca or None,
+                "categoria": categoria,
+                "preco": round(float(preco), 2),
+                "precoOriginal": round(float(preco_de), 2) if preco_de and preco_de > preco else None,
+                "unidade": sku.get("unitMultiplier") and f"{sku['unitMultiplier']} un" or None,
+                "imagem": imagem,
+                "redeId": rede_id,
+                "redeNome": rede_nome,
+                "origem": "Loja Online (VTEX)",
+                "ean": sku.get("ean"),
+                "data": datetime.now(timezone.utc).isoformat(),
+                "validade": validade,
+            })
+        except Exception as err:
             continue
-
-        sku = itens[0]
-        imagem = sku.get("images", [{}])[0].get("imageUrl") if sku.get("images") else None
-        vendedores = sku.get("sellers", [])
-        if not vendedores:
-            continue
-
-        oferta_comercial = vendedores[0].get("commertialOffer", {})
-        preco = oferta_comercial.get("Price")
-        preco_de = oferta_comercial.get("ListPrice")
-        disponivel = oferta_comercial.get("IsAvailable", False)
-
-        if not preco or preco <= 0 or not disponivel:
-            continue
-
-        categoria = categoria_fixa or detectar_categoria(nome_produto, mapa_categoria_por_palavra)
-
-        ofertas.append({
-            "nome": nome_produto,
-            "marca": marca or None,
-            "categoria": categoria,
-            "preco": round(float(preco), 2),
-            "precoOriginal": round(float(preco_de), 2) if preco_de and preco_de > preco else None,
-            "unidade": sku.get("unitMultiplier") and f"{sku['unitMultiplier']} un" or None,
-            "imagem": imagem,
-            "redeId": rede_id,
-            "redeNome": rede_nome,
-            "origem": "Loja Online (VTEX)",
-            "ean": sku.get("ean"),
-            "data": datetime.now(timezone.utc).isoformat(),
-            "validade": validade,
-        })
 
     return ofertas
 
 
-# --- MOTOR OCR (ENCARTES / REDES SOCIAIS) ---
+# --- MOTOR OCR (ENCARTES) ---
 
 def processar_imagem_ocr(caminho_imagem):
-    """Aplica binarização na imagem com OpenCV para aumentar a precisão do Tesseract."""
     try:
         img = cv2.imread(str(caminho_imagem))
+        if img is None:
+            return ""
         cinza = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # Binarização adaptativa para destacar textos e preços
         _, limiar = cv2.threshold(cinza, 150, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         texto = pytesseract.image_to_string(limiar, lang='por')
         return texto
     except Exception as e:
-        print(f"  [erro ocr] falha ao processar {caminho_imagem}: {e}")
+        print(f"  [erro ocr] falha em {caminho_imagem}: {e}")
         return ""
 
 
 def extrair_ofertas_ocr(url_pagina, rede_id, rede_nome, mapa_categoria):
-    """Busca imagens de encarte na página da rede e aplica OCR."""
+    if not OCR_DISPONIVEL:
+        return []
+
     print(f"  [OCR] buscando encartes em {url_pagina}...")
     html = requisitar(url_pagina, is_json=False)
     if not html:
         return []
 
-    soup = BeautifulSoup(html, 'html.parser')
-    # Procura por tag <img> contendo keywords de ofertas/encartes
-    imagens_encarte = []
-    for img in soup.find_all('img'):
-        src = img.get('src') or img.get('data-src')
-        if src and any(term in src.lower() for term in ['oferta', 'encarte', 'volante', 'banner', 'promocao']):
-            if not src.startswith('http'):
-                src = urllib.parse.urljoin(url_pagina, src)
-            imagens_encarte.append(src)
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
+        imagens_encarte = []
+        for img in soup.find_all('img'):
+            src = img.get('src') or img.get('data-src')
+            if src and any(term in src.lower() for term in ['oferta', 'encarte', 'volante', 'banner', 'promocao']):
+                if not src.startswith('http'):
+                    src = urllib.parse.urljoin(url_pagina, src)
+                imagens_encarte.append(src)
 
-    ofertas = []
-    TEMP_DIR.mkdir(parents=True, exist_ok=True)
-    validade = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
+        ofertas = []
+        TEMP_DIR.mkdir(parents=True, exist_ok=True)
+        validade = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
 
-    for idx, img_url in enumerate(imagens_encarte[:3]):  # Limite de 3 imagens por rede
-        print(f"  [OCR] baixando encarte {idx+1}: {img_url}")
-        img_data = requisitar(img_url, is_json=False)
-        if not img_data:
-            continue
+        for idx, img_url in enumerate(imagens_encarte[:3]):
+            img_data = requisitar(img_url, is_json=False)
+            if not img_data:
+                continue
 
-        caminho_temp = TEMP_DIR / f"{rede_id}_{idx}.jpg"
-        with open(caminho_temp, "wb") as f:
-            f.write(img_data)
+            caminho_temp = TEMP_DIR / f"{rede_id}_{idx}.jpg"
+            with open(caminho_temp, "wb") as f:
+                f.write(img_data)
 
-        texto_ocr = processar_imagem_ocr(caminho_temp)
-        linhas = texto_ocr.split('\n')
+            texto_ocr = processar_imagem_ocr(caminho_temp)
+            linhas = texto_ocr.split('\n')
 
-        for i, linha in enumerate(linhas):
-            match = PADRAO_OFERTA_OCR.search(linha)
-            if match:
-                produto_nome = match.group("produto").strip()
-                preco_str = match.group("preco").replace(',', '.')
-                unidade = match.group("unidade")
+            for i, linha in enumerate(linhas):
+                match = PADRAO_OFERTA_OCR.search(linha)
+                if match:
+                    produto_nome = match.group("produto").strip()
+                    preco_str = match.group("preco").replace(',', '.')
+                    unidade = match.group("unidade")
 
-                if len(produto_nome) < 3 and i > 0:
-                    produto_nome = linhas[i-1].strip()
+                    if len(produto_nome) < 3 and i > 0:
+                        produto_nome = linhas[i-1].strip()
 
-                try:
-                    preco = float(preco_str)
-                    if preco > 0 and len(produto_nome) >= 3:
-                        categoria = detectar_categoria(produto_nome, mapa_categoria)
-                        ofertas.append({
-                            "nome": produto_nome.title(),
-                            "marca": None,
-                            "categoria": categoria,
-                            "preco": round(preco, 2),
-                            "precoOriginal": None,
-                            "unidade": unidade or "un",
-                            "imagem": img_url,
-                            "redeId": rede_id,
-                            "redeNome": rede_nome,
-                            "origem": "Encarte Digital (OCR)",
-                            "data": datetime.now(timezone.utc).isoformat(),
-                            "validade": validade,
-                        })
-                except ValueError:
-                    continue
-
-    return ofertas
+                    try:
+                        preco = float(preco_str)
+                        if preco > 0 and len(produto_nome) >= 3:
+                            categoria = detectar_categoria(produto_nome, mapa_categoria)
+                            ofertas.append({
+                                "nome": produto_nome.title(),
+                                "marca": None,
+                                "categoria": categoria,
+                                "preco": round(preco, 2),
+                                "precoOriginal": None,
+                                "unidade": unidade or "un",
+                                "imagem": img_url,
+                                "redeId": rede_id,
+                                "redeNome": rede_nome,
+                                "origem": "Encarte Digital (OCR)",
+                                "data": datetime.now(timezone.utc).isoformat(),
+                                "validade": validade,
+                            })
+                    except ValueError:
+                        continue
+        return ofertas
+    except Exception as e:
+        print(f"  [erro ocr pipeline] {rede_nome}: {e}")
+        return []
 
 
 # --- EXECUTOR PRINCIPAL ---
@@ -247,39 +257,46 @@ def main():
         print(f"\n== Coletando: {rede['nomeExibicao']} ==")
         ofertas_rede = []
 
-        # 1. Coleta via VTEX
-        if rede.get("tipoColeta") == "vtex" or "apiBase" in rede:
-            slug = rede.get("ofertasSlug")
-            if slug:
-                print(f"  buscando coleção real VTEX ('{slug}')...")
-                produtos = buscar_colecao_ofertas(rede["apiBase"], slug)
-                ofertas_rede = extrair_ofertas_vtex(produtos, rede["id"], rede["nomeExibicao"], mapa_categoria)
+        try:
+            # 1. Coleta VTEX
+            if rede.get("tipoColeta") == "vtex" or "apiBase" in rede:
+                slug = rede.get("ofertasSlug")
+                if slug:
+                    print(f"  buscando coleção real VTEX ('{slug}')...")
+                    produtos = buscar_colecao_ofertas(rede["apiBase"], slug)
+                    ofertas_rede = extrair_ofertas_vtex(produtos, rede["id"], rede["nomeExibicao"], mapa_categoria)
 
-            if not ofertas_rede and config.get("termosPorCategoria"):
-                print("  usando busca por termo (reserva VTEX)...")
-                for categoria, termos in config.get("termosPorCategoria", {}).items():
-                    for termo in termos:
-                        produtos = buscar_produtos_por_termo(rede["apiBase"], termo)
-                        ofertas_rede.extend(
-                            extrair_ofertas_vtex(produtos, rede["id"], rede["nomeExibicao"], mapa_categoria, categoria_fixa=categoria)
-                        )
-                        time.sleep(REQUEST_DELAY_SECONDS)
+                if not ofertas_rede and config.get("termosPorCategoria"):
+                    print("  usando busca por termo (reserva VTEX)...")
+                    for categoria, termos in config.get("termosPorCategoria", {}).items():
+                        for termo in termos:
+                            produtos = buscar_produtos_por_termo(rede["apiBase"], termo)
+                            ofertas_rede.extend(
+                                extrair_ofertas_vtex(produtos, rede["id"], rede["nomeExibicao"], mapa_categoria, categoria_fixa=categoria)
+                            )
+                            time.sleep(REQUEST_DELAY_SECONDS)
 
-        # 2. Coleta via OCR (Encartes e Redes Sociais)
-        if rede.get("ocr_habilitado") or rede.get("tipoColeta") == "ocr":
-            url_encarte = rede.get("urlEncarte") or rede.get("site_ofertas")
-            if url_encarte:
-                ofertas_ocr = extrair_ofertas_ocr(url_encarte, rede["id"], rede["nomeExibicao"], mapa_categoria)
-                ofertas_rede.extend(ofertas_ocr)
+            # 2. Coleta OCR
+            if (rede.get("ocr_habilitado") or rede.get("tipoColeta") == "ocr") and OCR_DISPONIVEL:
+                url_encarte = rede.get("urlEncarte") or rede.get("site_ofertas")
+                if url_encarte:
+                    ofertas_ocr = extrair_ofertas_ocr(url_encarte, rede["id"], rede["nomeExibicao"], mapa_categoria)
+                    ofertas_rede.extend(ofertas_ocr)
+
+        except Exception as e:
+            print(f"  [erro ao processar rede {rede['nomeExibicao']}]: {e}")
 
         print(f"  Total da rede {rede['nomeExibicao']}: {len(ofertas_rede)} ofertas.")
         todas_ofertas.extend(ofertas_rede)
 
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(todas_ofertas, f, ensure_ascii=False, indent=2)
-
-    print(f"\n✅ {len(todas_ofertas)} ofertas totais salvas em {OUTPUT_PATH}")
+    # TRAVA DE SEGURANÇA: Só salva se encontrar ofertas. Se der 0, não zera o arquivo do app.
+    if len(todas_ofertas) > 0:
+        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+            json.dump(todas_ofertas, f, ensure_ascii=False, indent=2)
+        print(f"\n✅ {len(todas_ofertas)} ofertas salvas com sucesso em {OUTPUT_PATH}")
+    else:
+        print("\n⚠️ Nenhuma oferta foi raspada nesta execução. O arquivo anterior foi mantido para evitar zelar o app.")
 
 
 if __name__ == "__main__":
