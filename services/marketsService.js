@@ -1,14 +1,11 @@
 /**
- * marketsService.js
- * Serviço responsável por buscar e manipular dados de mercados próximos.
+ * src/services/marketsService.js
  */
-
 import { APP_CONFIG } from "../config/config.js";
 
 export const marketsService = {
   async findNearby(latitude, longitude) {
     try {
-      // Lógica de busca de mercados próximos via Overpass API ou Mock
       const radius = APP_CONFIG?.location?.defaultRadiusKm || 5;
       const url = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${radius * 1000},${latitude},${longitude})[shop=supermarket];out;`;
 
@@ -28,5 +25,5 @@ export const marketsService = {
   }
 };
 
-// Exportação padrão de segurança para compatibilidade universal
+// Exportação padrão para compatibilidade universal
 export default marketsService;
