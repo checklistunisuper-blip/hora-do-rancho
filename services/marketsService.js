@@ -1,81 +1,47 @@
 /**
- * marketsService.js
- * Busca supermercados/atacados reais próximos usando a Overpass API
- * (dados abertos do OpenStreetMap) — sem chave de API, 100% gratuito.
+ * encarteExtractionService.js
+ * Front-end: converte a imagem enviada pelo usuário e chama a função
+ * serverless (netlify/functions/extract-encarte.js) que faz a leitura via IA.
+ * A chave de API nunca fica no navegador — só na função serverless.
  */
-
-import { APP_CONFIG } from "../config/config.js";
-import { geolocationService } from "./geolocationService.js";
-import { storageService } from "./storageService.js";
-
-function buildOverpassQuery(lat, lon, radiusMeters) {
-  return `
-    [out:json][timeout:25];
-    (
-      node["shop"~"supermarket|convenience|wholesale"](around:${radiusMeters},${lat},${lon});
-      way["shop"~"supermarket|convenience|wholesale"](around:${radiusMeters},${lat},${lon});
-    );
-    out center tags;
-  `;
-}
-
-function toMarket(element, userLat, userLon) {
-  const lat = element.lat ?? element.center?.lat;
-  const lon = element.lon ?? element.center?.lon;
-  const tags = element.tags || {};
-
-  if (lat == null || lon == null) return null;
-
-  return {
-    id: `osm-${element.type}-${element.id}`,
-    nome: tags.name || "Mercado sem nome cadastrado",
-    endereco: [tags["addr:street"], tags["addr:housenumber"], tags["addr:suburb"]]
-      .filter(Boolean)
-      .join(", "),
-    latitude: lat,
-    longitude: lon,
-    distanciaKm: geolocationService.distanceKm(userLat, userLon, lat, lon),
-    tipo: tags.shop === "wholesale" ? "Atacado" : "Supermercado",
-    ultimaAtualizacaoOfertas: null, // preenchido pela camada de ofertas
-    status: "ativo",
-  };
-}
-
-export const marketsService = {
+export const encarteExtractionService = {
   /**
-   * Busca mercados num raio (padrão: APP_CONFIG.searchRadiusKm) a partir da posição do usuário.
-   * Faz cache local (IndexedDB) para uso offline.
+   * @param {File} arquivoImagem
+   * @param {{nomeMercado?: string}} contexto
+   * @returns {Promise<{produtos: Array, observacao: string|null}>}
    */
-  async findNearby(latitude, longitude, radiusKm = APP_CONFIG.searchRadiusKm) {
-    const query = buildOverpassQuery(latitude, longitude, radiusKm * 1000);
+  async extrairDeImagem(arquivoImagem, contexto = {}) {
+    const base64 = await this._arquivoParaBase64(arquivoImagem);
+    const resposta = await fetch("/.netlify/functions/extract-encarte", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        imagemBase64: base64,
+        mediaType: arquivoImagem.type || "image/jpeg",
+        nomeMercado: contexto.nomeMercado || null,
+      }),
+    });
 
-    try {
-      const response = await fetch(APP_CONFIG.overpass.endpoint, {
-        method: "POST",
-        body: `data=${encodeURIComponent(query)}`,
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      });
-
-      if (!response.ok) throw new Error("Falha ao consultar mercados próximos.");
-
-      const data = await response.json();
-      const markets = (data.elements || [])
-        .map((el) => toMarket(el, latitude, longitude))
-        .filter(Boolean)
-        .sort((a, b) => a.distanciaKm - b.distanciaKm);
-
-      if (markets.length) {
-        await storageService.putMany(APP_CONFIG.db.stores.markets, markets);
-      }
-
-      return markets;
-    } catch (error) {
-      console.warn("Overpass indisponível, usando cache local:", error.message);
-      return storageService.getAll(APP_CONFIG.db.stores.markets);
+    if (!resposta.ok) {
+      const erro = await resposta.text().catch(() => "");
+      throw new Error(`Falha ao processar o encarte (${resposta.status}): ${erro}`);
     }
+
+    const dados = await resposta.json();
+    return dados; // { produtos: [...], observacao: string|null }
   },
 
-  async getById(id) {
-    return storageService.get(APP_CONFIG.db.stores.markets, id);
+  _arquivoParaBase64(arquivo) {
+    return new Promise((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onload = () => {
+        // remove o prefixo "data:image/jpeg;base64," antes de mandar
+        const resultado = leitor.result;
+        const base64 = String(resultado).split(",")[1];
+        resolve(base64);
+      };
+      leitor.onerror = () => reject(new Error("Não foi possível ler o arquivo de imagem."));
+      leitor.readAsDataURL(arquivo);
+    });
   },
 };
