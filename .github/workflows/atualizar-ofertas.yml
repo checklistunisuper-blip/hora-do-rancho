@@ -2,9 +2,8 @@ name: Atualização Automática de Ofertas
 
 on:
   schedule:
-    # Executa automaticamente todos os dias às 06:00 da manhã (Horário de Brasília)
     - cron: '0 9 * * *'
-  workflow_dispatch: # Permite executar manualmente pelo painel do GitHub
+  workflow_dispatch:
 
 jobs:
   scrape-offers:
@@ -18,6 +17,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+
+      - name: Verificar diretório e arquivos
+        run: ls -la
 
       - name: Instalar dependências
         run: npm install
