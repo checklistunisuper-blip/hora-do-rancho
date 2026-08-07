@@ -26,7 +26,7 @@ jobs:
         with:
           enablement: true
 
-      - name: Enviar todo o projeto como artefato do Pages
+      - name: Enviar artefato do PWA para o Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: "."
