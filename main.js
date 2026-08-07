@@ -1,3 +1,4 @@
+
 /**
  * main.js — ponto de entrada do HORA DO RANCHO.
  * Inicializa o roteador, registra as páginas, monta a navegação inferior,
@@ -28,8 +29,10 @@ const router = new Router(outlet);
 function registerPage(path, pageModule) {
   router.register(path, async (params) => {
     const html = await pageModule.render(params);
-    queueMicrotask(() => pageModule.afterRender?.(router, params));
-    return html;
+    return {
+      html,
+      afterRender: () => pageModule.afterRender?.(router, params),
+    };
   });
 }
 
