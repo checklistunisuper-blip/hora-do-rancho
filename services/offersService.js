@@ -2,50 +2,30 @@
  * offersService.js
  * Orquestra todos os provedores de ofertas registrados, salva os resultados
  * localmente (IndexedDB) e expõe consultas usadas pelo restante do app.
- *
- * PARA ADICIONAR UM NOVO PROVEDOR: importe a classe, instancie-a e adicione
- * ao array `providers` abaixo. Nenhum outro arquivo do app precisa mudar.
  */
 
 import { APP_CONFIG } from "../config/config.js";
 import { storageService } from "./storageService.js";
-import { MockOfferProvider } from "./offerProviders/MockOfferProvider.js";
 import { ScrapedFeedProvider } from "./offerProviders/ScrapedFeedProvider.js";
 
 const scrapedProvider = new ScrapedFeedProvider();
-const mockProvider = new MockOfferProvider();
 
 export const offersService = {
   /**
-   * Busca ofertas para os mercados informados. Ordem de prioridade:
-   * 1) ScrapedFeedProvider — preços reais coletados (quando o mercado bate
-   *    com uma rede configurada em config/redes.json);
-   * 2) MockOfferProvider — só entra como fallback para os mercados que
-   *    NÃO tiveram nenhuma oferta real encontrada, pra a tela nunca ficar vazia.
+   * Busca ofertas para os mercados informados.
+   * Apenas preços reais coletados via ScrapedFeedProvider.
    *
-   * @param {Array} markets - lista de objetos de mercado (id, nome, ...), não só IDs.
+   * @param {Array} markets - lista de objetos de mercado (id, nome, ...).
    */
   async fetchAllOffers(markets, context = {}) {
     const marketIds = markets.map((m) => m.id);
 
+    // Busca apenas as ofertas reais do scraper
     const ofertasReais = await scrapedProvider
       .fetchOffers({ marketIds, markets, ...context })
       .catch(() => []);
 
-    const mercadosComOfertaReal = new Set(ofertasReais.map((o) => o.mercadoId));
-    const mercadosSemOfertaReal = markets.filter((m) => !mercadosComOfertaReal.has(m.id));
-
-    const ofertasMock = mercadosSemOfertaReal.length
-      ? await mockProvider
-          .fetchOffers({
-            marketIds: mercadosSemOfertaReal.map((m) => m.id),
-            markets: mercadosSemOfertaReal,
-            ...context,
-          })
-          .catch(() => [])
-      : [];
-
-    const offers = [...ofertasReais, ...ofertasMock];
+    const offers = ofertasReais;
 
     if (offers.length) {
       await storageService.putMany(APP_CONFIG.db.stores.offers, offers);
@@ -90,7 +70,6 @@ export const offersService = {
     let equivalente = false;
 
     if (matches.length < 2) {
-      // fallback: produtos "equivalentes" pela categoria + nome parecido
       matches = all.filter((o) => o.nome.toLowerCase().includes(nomeLower));
       equivalente = true;
     }
