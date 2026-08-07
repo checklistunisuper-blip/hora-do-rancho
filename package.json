@@ -1,0 +1,15 @@
+{
+  "name": "hora-do-rancho",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Aplicativo de ofertas e busca de mercados do RS",
+  "main": "src/services/marketsService.js",
+  "scripts": {
+    "scrape": "node scripts/scraper.js"
+  },
+  "dependencies": {
+    "@google/genai": "^0.1.1",
+    "dotenv": "^16.4.5",
+    "puppeteer": "^22.0.0"
+  }
+}
