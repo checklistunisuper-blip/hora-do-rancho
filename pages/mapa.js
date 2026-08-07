@@ -1,6 +1,6 @@
 /**
  * src/pages/mapa.js
- * Exibe o mapa com a camada do Google Maps no Leaflet e pins personalizados com a logo dos mercados.
+ * Exibe o mapa com a camada do Google Maps e pins personalizados com a logo dos mercados.
  */
 
 import { APP_CONFIG } from "../config/config.js";
@@ -71,9 +71,14 @@ export async function afterRender(router) {
     }
   }
 
-  // Inicialização do Mapa Leaflet com Google Maps
+  // Inicialização do Google Maps
   if (window.L && mapEl) {
     const map = L.map(mapEl).setView([pos.latitude, pos.longitude], 14);
+
+    // Desativa o prefixo "Leaflet |" da atribuição
+    if (map.attributionControl) {
+      map.attributionControl.setPrefix(false);
+    }
 
     // --- CAMADA DO GOOGLE MAPS ---
     L.tileLayer("https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
