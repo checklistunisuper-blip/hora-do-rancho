@@ -1,0 +1,133 @@
+/**
+ * netlify/functions/search-market-offers.js
+ * Busca ofertas de um mercado/atacado na web usando Gemini API + Google Search Grounding.
+ */
+
+exports.handler = async (event) => {
+  // Configuração dos cabeçalhos CORS
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Content-Type": "application/json",
+  };
+
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: "" };
+  }
+
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: "Método não permitido. Use POST." }),
+    };
+  }
+
+  try {
+    const body = JSON.parse(event.body || "{}");
+    const { nomeMercado, cidade, estado } = body;
+
+    if (!nomeMercado) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "O nome do mercado é obrigatório." }),
+      };
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: "A chave GEMINI_API_KEY não está configurada." }),
+      };
+    }
+
+    // Endpoint oficial do modelo Gemini 2.5 Flash
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const localizacaoTexto = cidade ? `na cidade de ${cidade}${estado ? " - " + estado : ""}` : "no Brasil";
+
+    const promptText = `
+Você é um assistente especializado em encontrar encartes e ofertas de supermercados e atacados.
+Pesquise na web pelas ofertas e encartes mais recentes e vigentes do supermercado/atacado "${nomeMercado}" ${localizacaoTexto}.
+
+Instruções de resposta:
+Extraia até 15 produtos em promoção encontrados na web com nome, preço numérico e unidade de medida (ex: kg, un, pacote).
+Sua resposta final deve conter EXCLUSIVAMENTE um objeto JSON válido no formato abaixo, sem marcadores de markdown ou texto adicional fora do JSON:
+
+{
+  "mercado": "${nomeMercado}",
+  "cidade": "${cidade || ""}",
+  "ofertas": [
+    {
+      "produto": "Nome do Produto",
+      "preco": 0.00,
+      "unidade": "un / kg / cx"
+    }
+  ],
+  "observacao": "Período de validade ou fonte das ofertas encontradas"
+}
+`;
+
+    // Configuração do payload ativando a ferramenta Google Search Grounding
+    const requestPayload = {
+      contents: [
+        {
+          parts: [{ text: promptText }],
+        },
+      ],
+      // Ativa o recurso de busca nativa do Google no Gemini
+      tools: [
+        {
+          googleSearch: {},
+        },
+      ],
+      generationConfig: {
+        temperature: 0.1,
+      },
+    };
+
+    const response = await fetch(geminiEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestPayload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erro na API do Gemini (${response.status}): ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    const rawContent = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    let resultado = { mercado: nomeMercado, ofertas: [], observacao: null };
+
+    if (rawContent) {
+      // Limpa possíveis blocos de código ```json ... ``` retornados pelo modelo
+      const jsonLimpo = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
+      try {
+        resultado = JSON.parse(jsonLimpo);
+      } catch (parseError) {
+        console.warn("Falha ao parsear JSON direto, retornando resposta bruta:", rawContent);
+        resultado.observacao = "Resposta obtida, mas requer ajuste de formatação.";
+      }
+    }
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(resultado),
+    };
+  } catch (error) {
+    console.error("Erro na busca de ofertas com Gemini Search:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: error.message || "Erro interno ao buscar ofertas na web." }),
+    };
+  }
+};
