@@ -5,6 +5,17 @@
 
 import { APP_CONFIG } from "../config/config.js";
 
+// Tenta importar as ofertas dinâmicas capturadas pelo robô de IA
+let ofertasCapturadas = {};
+try {
+  const response = await fetch("../data/ofertas-capturadas.json");
+  if (response.ok) {
+    ofertasCapturadas = await response.json();
+  }
+} catch (e) {
+  console.warn("Nenhum arquivo de ofertas capturadas encontrado, usando dados estáticos.");
+}
+
 /**
  * Banco de dados estático de Supermercados e Atacados do RS.
  */
@@ -172,7 +183,9 @@ function formatMarketPayload(market, userLat = -30.1132, userLon = -51.3235) {
   const distKm = Number(distNum.toFixed(1));
   const distMeters = Math.round(distNum * 1000);
   const distText = distKm < 1 ? `${distMeters} m` : `${distKm} km`;
-  const ofertasList = market.ofertas || [];
+  
+  // Prioriza as ofertas dinâmicas obtidas pelo robô, senão usa as estáticas
+  const ofertasList = ofertasCapturadas[market.id] || market.ofertas || [];
 
   return {
     ...market,
@@ -212,7 +225,7 @@ function formatMarketPayload(market, userLat = -30.1132, userLon = -51.3235) {
 
 export const marketsService = {
   /**
-   * Busca um mercado específico pelo ID (Corrige o erro do ofertas.js)
+   * Busca um mercado específico pelo ID
    */
   async getById(id, userLat = -30.1132, userLon = -51.3235) {
     const market = ESTABELECIMENTOS_RS.find((m) => m.id === id || String(m.id) === String(id));
