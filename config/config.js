@@ -31,15 +31,18 @@ export const APP_CONFIG = {
 
   // Categorias fixas do app
   categories: [
-    { id: "acougue", label: "Açougue", icon: "🥩" },
-    { id: "laticinios", label: "Laticínios", icon: "🧀" },
+    { id: "padaria", label: "Padaria", icon: "🥖" },
+    { id: "rotisseria", label: "Rotisseria", icon: "🍗" },
     { id: "hortifruti", label: "Hortifruti", icon: "🥬" },
-    { id: "mercearia-seca", label: "Mercearia seca", icon: "🌾" },
-    { id: "mercearia-liquida", label: "Mercearia líquida", icon: "🧴" },
+    { id: "laticinios", label: "Laticínios", icon: "🧀" },
+    { id: "mercearia-liquida", label: "Mercearia líquida", icon: "🥤" },
+    { id: "mercearia", label: "Mercearia", icon: "🌾" },
+    { id: "matinais", label: "Matinais", icon: "☕" },
     { id: "limpeza", label: "Limpeza", icon: "🧼" },
     { id: "perfumaria", label: "Perfumaria", icon: "🧴" },
     { id: "bazar", label: "Bazar", icon: "🛍️" },
-    { id: "sazonal", label: "Sazonal", icon: "🎉" },
+    { id: "sazonais", label: "Sazonais", icon: "🎉" },
+    { id: "eletronicos", label: "Eletrônicos", icon: "📺" },
   ],
 
   // Faixas de reserva para a Lista de Rancho
