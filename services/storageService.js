@@ -35,8 +35,18 @@ async function withStore(storeName, mode, callback) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, mode);
     const store = tx.objectStore(storeName);
-    const result = callback(store);
-    tx.oncomplete = () => resolve(result?.result ?? result);
+    const req = callback(store);
+
+    let output;
+    if (req && typeof req.onsuccess !== "undefined") {
+      req.onsuccess = () => {
+        output = req.result;
+      };
+    } else {
+      output = req;
+    }
+
+    tx.oncomplete = () => resolve(output);
     tx.onerror = () => reject(tx.error);
   });
 }
