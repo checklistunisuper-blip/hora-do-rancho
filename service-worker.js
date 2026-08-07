@@ -4,7 +4,7 @@
  * chamadas de API (Overpass/Nominatim), com fallback para o cache.
  */
 
-const CACHE_NAME = "hora-do-rancho-v2";
+const CACHE_NAME = "hora-do-rancho-v3";
 
 const APP_SHELL = [
   "./",
