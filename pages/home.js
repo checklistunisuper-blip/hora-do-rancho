@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config/config.js";
 import { geolocationService } from "../services/geolocationService.js";
-import { marketsService } from "../services/marketsService.js";
+import marketsService from "../services/marketsService.js"; // <--- REMOVIDAS AS CHAVES
 import { storageService } from "../services/storageService.js";
 
 export async function render() {
@@ -57,20 +57,24 @@ export function afterRender(router) {
 
   // ---- 1. Detectar via GPS ----
   document.getElementById("btn-detectar-local")?.addEventListener("click", async () => {
-    statusEl.textContent = "Obtendo sua localização...";
+    if (statusEl) statusEl.textContent = "Obtendo sua localização...";
     try {
       const pos = await geolocationService.getCurrentPosition();
       storageService.setPreference("posicao", pos);
 
-      statusEl.textContent = "Identificando endereço...";
+      if (statusEl) statusEl.textContent = "Identificando endereço...";
       const endereco = await geolocationService.reverseGeocode(pos.latitude, pos.longitude);
       storageService.setPreference("localizacao", endereco);
 
-      locationDisplay.innerHTML = `<p>📍 ${endereco.bairro ? endereco.bairro + ", " : ""}${endereco.municipio} - ${endereco.estado}</p>`;
-      statusEl.textContent = "Localização detectada com sucesso!";
-      btnBuscar.disabled = false;
+      if (locationDisplay) {
+        locationDisplay.innerHTML = `<p>📍 ${endereco.bairro ? endereco.bairro + ", " : ""}${endereco.municipio} - ${endereco.estado}</p>`;
+      }
+      if (statusEl) statusEl.textContent = "Localização detectada com sucesso!";
+      if (btnBuscar) btnBuscar.disabled = false;
     } catch (error) {
-      statusEl.textContent = `Não foi possível obter GPS: ${error.message}. Você pode informar manualmente abaixo.`;
+      if (statusEl) {
+        statusEl.textContent = `Não foi possível obter GPS: ${error.message}. Você pode informar manualmente abaixo.`;
+      }
     }
   });
 
@@ -79,31 +83,30 @@ export function afterRender(router) {
     e.preventDefault();
     const dados = Object.fromEntries(new FormData(e.target));
     storageService.setPreference("localizacao", dados);
-    locationDisplay.innerHTML = `<p>📍 ${dados.bairro ? dados.bairro + ", " : ""}${dados.municipio} - ${dados.estado}</p>`;
-    statusEl.textContent = "Localização manual salva.";
-    btnBuscar.disabled = false;
+    if (locationDisplay) {
+      locationDisplay.innerHTML = `<p>📍 ${dados.bairro ? dados.bairro + ", " : ""}${dados.municipio} - ${dados.estado}</p>`;
+    }
+    if (statusEl) statusEl.textContent = "Localização manual salva.";
+    if (btnBuscar) btnBuscar.disabled = false;
   });
 
   // ---- 3. Avançar para a segunda etapa ----
   btnBuscar?.addEventListener("click", async () => {
     let pos = storageService.getPreference("posicao");
-    const local = storageService.getPreference("localizacao");
 
-    statusEl.textContent = "Buscando mercados e ofertas...";
+    if (statusEl) statusEl.textContent = "Buscando mercados e ofertas...";
     btnBuscar.disabled = true;
 
     try {
       if (pos && pos.latitude && pos.longitude) {
         await marketsService.findNearby(pos.latitude, pos.longitude).catch(() => []);
       }
-      // Navega para a segunda tela independente de falha de coordenadas exatas
       router.navigate("/mapa");
     } catch (error) {
       console.warn("Erro ao buscar mercados próximos:", error);
-      // Força a navegação para não reter o usuário na primeira tela
       router.navigate("/mapa");
     } finally {
       btnBuscar.disabled = false;
     }
   });
-}
+}   
