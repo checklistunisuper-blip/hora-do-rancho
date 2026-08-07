@@ -2,8 +2,9 @@ name: Atualização Automática de Ofertas
 
 on:
   schedule:
+    # Executa diariamente às 06:00 da manhã (Horário de Brasília)
     - cron: '0 9 * * *'
-  workflow_dispatch:
+  workflow_dispatch: # Permite execução manual pelo painel Actions
 
 jobs:
   scrape-offers:
@@ -33,6 +34,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/data/ofertas-capturadas.json
+          git add public/data/ofertas-capturadas.json
           git commit -m "chore: ofertas atualizadas automaticamente via IA [skip ci]" || exit 0
           git push
+          
