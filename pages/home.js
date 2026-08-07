@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config/config.js";
 import { geolocationService } from "../services/geolocationService.js";
-import marketsService from "../services/marketsService.js"; // <--- REMOVIDAS AS CHAVES
+import marketsService from "../services/marketsService.js";
 import { storageService } from "../services/storageService.js";
 
 export async function render() {
@@ -55,7 +55,7 @@ export function afterRender(router) {
   const locationDisplay = document.getElementById("location-display");
   const btnBuscar = document.getElementById("btn-buscar-ofertas");
 
-  // ---- 1. Detectar via GPS ----
+  // 1. Detectar via GPS
   document.getElementById("btn-detectar-local")?.addEventListener("click", async () => {
     if (statusEl) statusEl.textContent = "Obtendo sua localização...";
     try {
@@ -73,12 +73,12 @@ export function afterRender(router) {
       if (btnBuscar) btnBuscar.disabled = false;
     } catch (error) {
       if (statusEl) {
-        statusEl.textContent = `Não foi possível obter GPS: ${error.message}. Você pode informar manualmente abaixo.`;
+        statusEl.textContent = `Não foi possível obter GPS: ${error.message}. Informe manualmente abaixo.`;
       }
     }
   });
 
-  // ---- 2. Preenchimento Manual ----
+  // 2. Preenchimento Manual
   document.getElementById("form-local-manual")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const dados = Object.fromEntries(new FormData(e.target));
@@ -90,10 +90,9 @@ export function afterRender(router) {
     if (btnBuscar) btnBuscar.disabled = false;
   });
 
-  // ---- 3. Avançar para a segunda etapa ----
+  // 3. Avançar para a próxima tela
   btnBuscar?.addEventListener("click", async () => {
     let pos = storageService.getPreference("posicao");
-
     if (statusEl) statusEl.textContent = "Buscando mercados e ofertas...";
     btnBuscar.disabled = true;
 
@@ -109,4 +108,4 @@ export function afterRender(router) {
       btnBuscar.disabled = false;
     }
   });
-}   
+}
