@@ -125,6 +125,11 @@ export function afterRender(router) {
     btnBuscar.disabled = true;
 
     try {
+      // Garante o carregamento/reciclagem das ofertas atualizadas
+      if (marketsService?.refresh) {
+        await marketsService.refresh();
+      }
+
       if (pos && pos.latitude && pos.longitude && marketsService?.findNearby) {
         await marketsService.findNearby(pos.latitude, pos.longitude).catch(() => []);
       }
