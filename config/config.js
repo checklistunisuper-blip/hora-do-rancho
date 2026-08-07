@@ -12,7 +12,8 @@ export const APP_CONFIG = {
 
   // Raio de busca de mercados (em km)
   searchRadiusKm: 10,
-// Overpass API (OpenStreetMap) — com fallbacks em caso de Gateway Timeout
+
+  // Overpass API (OpenStreetMap) — com fallbacks em caso de Gateway Timeout
   overpass: {
     endpoints: [
       "https://overpass-api.de/api/interpreter",
@@ -20,17 +21,18 @@ export const APP_CONFIG = {
       "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
     ],
   },
-  
 
   // Nominatim (OpenStreetMap) — geocodificação reversa (estado/município/bairro), gratuito
   nominatim: {
     endpoint: "https://nominatim.openstreetmap.org/reverse",
   },
 
-  // Tiles do mapa (Leaflet + OpenStreetMap, gratuito, sem chave de API)
+  // Tiles do mapa (Leaflet + Google Maps, gratuito via raster tiles)
   mapTiles: {
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: "&copy; colaboradores do OpenStreetMap",
+    url: "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+    attribution: "&copy; Google Maps",
+    subdomains: ["mt0", "mt1", "mt2", "mt3"],
+    maxZoom: 20
   },
 
   // Categorias fixas do app
