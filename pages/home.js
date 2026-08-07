@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config/config.js";
 import { geolocationService } from "../services/geolocationService.js";
-import marketsService from "../services/marketsService.js";
+import { marketsService } from "../services/marketsService.js"; // Importação nomeada corrigida
 import { storageService } from "../services/storageService.js";
 
 export async function render() {
