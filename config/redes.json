@@ -1,9 +1,10 @@
 {
-  "_comentario": "Cada rede usa a API pública VTEX. 'ofertasSlug' é a coleção/cluster de promoções real do site (ex: zaffari.com.br/ofertas), consultada via ?map=productclusternames — são os produtos que a própria rede está anunciando em oferta, não uma busca genérica por categoria. matchKeywords casa o mercado físico (achado pelo Overpass/OpenStreetMap) com a rede pelo nome.",
+  "_comentario": "As redes podem usar coleta via API VTEX ou via OCR (raspagem de encartes/redes sociais). 'matchKeywords' casa o mercado físico (achado pelo Overpass/OpenStreetMap) com a rede pelo nome.",
   "redes": [
     {
       "id": "zaffari",
       "nomeExibicao": "Zaffari",
+      "tipoColeta": "vtex",
       "apiBase": "https://www.zaffari.com.br",
       "ofertasSlug": "ofertas",
       "matchKeywords": ["zaffari", "bourbon"]
@@ -11,6 +12,7 @@
     {
       "id": "carrefour",
       "nomeExibicao": "Carrefour",
+      "tipoColeta": "vtex",
       "apiBase": "https://mercado.carrefour.com.br",
       "ofertasSlug": "ofertas",
       "matchKeywords": ["carrefour"]
@@ -18,6 +20,7 @@
     {
       "id": "stok-center",
       "nomeExibicao": "Stok Center",
+      "tipoColeta": "vtex",
       "apiBase": "https://www.stokonline.com.br",
       "ofertasSlug": "ofertas",
       "matchKeywords": ["stok center", "stok online", "stok"]
@@ -25,20 +28,53 @@
     {
       "id": "rissul",
       "nomeExibicao": "Rissul",
+      "tipoColeta": "vtex",
       "apiBase": "https://www.rissul.com.br",
       "ofertasSlug": "ofertas",
       "matchKeywords": ["rissul"]
+    },
+    {
+      "id": "uniatacadista",
+      "nomeExibicao": "UniAtacadista",
+      "tipoColeta": "ocr",
+      "ocr_habilitado": true,
+      "urlEncarte": "https://uniatacadistars.com.br/ofertas/",
+      "matchKeywords": ["uniatacadista", "uni atacadista", "unisuper"]
+    },
+    {
+      "id": "asun",
+      "nomeExibicao": "Asun Supermercados",
+      "tipoColeta": "ocr",
+      "ocr_habilitado": true,
+      "urlEncarte": "https://www.asunonline.com.br",
+      "matchKeywords": ["asun", "asun supermercados"]
+    },
+    {
+      "id": "macromix",
+      "nomeExibicao": "Macromix Atacado",
+      "tipoColeta": "ocr",
+      "ocr_habilitado": true,
+      "urlEncarte": "https://macromixatacado.com.br/ofertas",
+      "matchKeywords": ["macromix", "macromix atacado"]
+    },
+    {
+      "id": "fort-atacadista",
+      "nomeExibicao": "Fort Atacadista",
+      "tipoColeta": "ocr",
+      "ocr_habilitado": true,
+      "urlEncarte": "https://www.fortatacadista.com.br/ofertas",
+      "matchKeywords": ["fort", "fort atacadista"]
     }
   ],
   "mapaCategoriaPorPalavraChave": {
-    "acougue": ["carne", "frango", "linguica", "bovina", "suina", "aves", "peixe", "picanha", "file"],
-    "laticinios": ["leite", "queijo", "iogurte", "manteiga", "requeijao", "achocolatado", "yogurt"],
-    "hortifruti": ["fruta", "legume", "verdura", "banana", "tomate", "batata", "alface", "cebola", "hortifruti"],
-    "mercearia-seca": ["arroz", "feijao", "acucar", "cafe", "macarrao", "farinha", "biscoito", "cereal"],
-    "mercearia-liquida": ["oleo", "vinagre", "molho", "azeite", "suco", "refrigerante", "agua", "vinho", "cerveja"],
-    "limpeza": ["detergente", "sabao", "amaciante", "desinfetante", "agua sanitaria", "limpeza"],
-    "perfumaria": ["shampoo", "sabonete", "creme dental", "papel higienico", "perfumaria", "higiene", "fralda", "absorvente"],
-    "bazar": ["pilha", "guardanapo", "vela", "utilidades", "bazar", "descartavel"],
+    "acougue": ["carne", "frango", "linguica", "bovina", "suina", "aves", "peixe", "picanha", "file", "costela", "alcatra", "maminha"],
+    "laticinios": ["leite", "queijo", "iogurte", "manteiga", "requeijao", "achocolatado", "yogurt", "ninho", "mussarela"],
+    "hortifruti": ["fruta", "legume", "verdura", "banana", "tomate", "batata", "alface", "cebola", "hortifruti", "maca", "laranja"],
+    "mercearia-seca": ["arroz", "feijao", "acucar", "cafe", "macarrao", "farinha", "biscoito", "cereal", "massa", "trigo"],
+    "mercearia-liquida": ["oleo", "vinagre", "molho", "azeite", "suco", "refrigerante", "agua", "vinho", "cerveja", "chopp", "coca"],
+    "limpeza": ["detergente", "sabao", "amaciante", "desinfetante", "agua sanitaria", "limpeza", "omo", "ypê", "ype"],
+    "perfumaria": ["shampoo", "sabonete", "creme dental", "papel higienico", "perfumaria", "higiene", "fralda", "absorvente", "colgate"],
+    "bazar": ["pilha", "guardanapo", "vela", "utilidades", "bazar", "descartavel", "copo"],
     "sazonal": ["panetone", "ovo de pascoa", "chocolate", "natal", "pascoa", "festa"]
   },
   "termosPorCategoria": {
