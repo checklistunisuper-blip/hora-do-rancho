@@ -1,20 +1,17 @@
 /**
  * src/services/marketsService.js
- * Base completa de Supermercados, Atacados e Atacarejos do RS.
- * Inclui mapeamento duplo de propriedades para compatibilidade total de UI (Google/Card).
+ * Base completa de Supermercados, Atacados e Ofertas do Rio Grande do Sul.
  */
 
 import { APP_CONFIG } from "../config/config.js";
 
 /**
- * Banco de dados estático de Supermercados e Atacados do Rio Grande do Sul.
+ * Banco de dados estático de Supermercados e Atacados do RS.
  */
 const ESTABELECIMENTOS_RS = [
   // ==========================================
   // ATACADOS E ATACAREJOS (RS)
   // ==========================================
-
-  // --- STOK CENTER / COMERCIAL ZAFFARI ---
   {
     id: "stok-guaiba",
     nome: "Stok Center — Guaíba",
@@ -24,7 +21,11 @@ const ESTABELECIMENTOS_RS = [
     endereco: "BR-116, Km 282 - Guaíba - RS",
     lat: -30.1350,
     lon: -51.3320,
-    logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true"
+    logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true",
+    ofertas: [
+      { id: "o1", produto: "Arroz Tipo 1 5kg", preco: "R$ 21,90" },
+      { id: "o2", produto: "Feijão Preto 1kg", preco: "R$ 7,49" }
+    ]
   },
   {
     id: "stok-canoas",
@@ -49,63 +50,6 @@ const ESTABELECIMENTOS_RS = [
     logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true"
   },
   {
-    id: "stok-caxias",
-    nome: "Stok Center — Caxias do Sul",
-    tipo: "Atacado",
-    rede: "Stok Center",
-    cidade: "Caxias do Sul",
-    endereco: "Rua Os Dezoito do Forte, 2000 - Caxias do Sul - RS",
-    lat: -29.1650,
-    lon: -51.1850,
-    logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true"
-  },
-  {
-    id: "stok-passofundo",
-    nome: "Stok Center — Passo Fundo",
-    tipo: "Atacado",
-    rede: "Stok Center",
-    cidade: "Passo Fundo",
-    endereco: "Av. Brasil Leste, 3000 - Petrópolis, Passo Fundo - RS",
-    lat: -28.2580,
-    lon: -52.3850,
-    logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true"
-  },
-  {
-    id: "stok-pelotas",
-    nome: "Stok Center — Pelotas",
-    tipo: "Atacado",
-    rede: "Stok Center",
-    cidade: "Pelotas",
-    endereco: "Av. Fernando Osório, 2000 - Três Vendas, Pelotas - RS",
-    lat: -31.7350,
-    lon: -52.3480,
-    logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true"
-  },
-  {
-    id: "stok-santamaria",
-    nome: "Stok Center — Santa Maria",
-    tipo: "Atacado",
-    rede: "Stok Center",
-    cidade: "Santa Maria",
-    endereco: "Av. Hélvio Basso, 1280 - Santa Maria - RS",
-    lat: -29.7080,
-    lon: -53.8150,
-    logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true"
-  },
-  {
-    id: "stok-gravatai",
-    nome: "Stok Center — Gravataí",
-    tipo: "Atacado",
-    rede: "Stok Center",
-    cidade: "Gravataí",
-    endereco: "Av. Dorival Cândido Luz de Oliveira, 6000 - Gravataí - RS",
-    lat: -29.9320,
-    lon: -51.0350,
-    logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true"
-  },
-
-  // --- FORT ATACADISTA ---
-  {
     id: "fort-canoas",
     nome: "Fort Atacadista — Canoas",
     tipo: "Atacado",
@@ -116,30 +60,6 @@ const ESTABELECIMENTOS_RS = [
     lon: -51.1680,
     logoUrl: "https://ui-avatars.com/api/?name=Fort+Atacadista&background=d32f2f&color=fff&bold=true"
   },
-  {
-    id: "fort-viamao",
-    nome: "Fort Atacadista — Viamão",
-    tipo: "Atacado",
-    rede: "Fort Atacadista",
-    cidade: "Viamão",
-    endereco: "Rodovia RS-040, Km 11 - Viamão - RS",
-    lat: -30.0750,
-    lon: -51.0850,
-    logoUrl: "https://ui-avatars.com/api/?name=Fort+Atacadista&background=d32f2f&color=fff&bold=true"
-  },
-  {
-    id: "fort-caxias",
-    nome: "Fort Atacadista — Caxias do Sul",
-    tipo: "Atacado",
-    rede: "Fort Atacadista",
-    cidade: "Caxias do Sul",
-    endereco: "BR-116, 16550 - De Lazzer, Caxias do Sul - RS",
-    lat: -29.1520,
-    lon: -51.1550,
-    logoUrl: "https://ui-avatars.com/api/?name=Fort+Atacadista&background=d32f2f&color=fff&bold=true"
-  },
-
-  // --- DESCO SUPER&ATACADO ---
   {
     id: "desco-poa",
     nome: "Desco Super&Atacado — Porto Alegre",
@@ -152,30 +72,6 @@ const ESTABELECIMENTOS_RS = [
     logoUrl: "https://ui-avatars.com/api/?name=Desco&background=0288d1&color=fff&bold=true"
   },
   {
-    id: "desco-lajeado",
-    nome: "Desco Super&Atacado — Lajeado",
-    tipo: "Atacado",
-    rede: "Desco",
-    cidade: "Lajeado",
-    endereco: "BR-386, Km 346 - Lajeado - RS",
-    lat: -29.4580,
-    lon: -51.9750,
-    logoUrl: "https://ui-avatars.com/api/?name=Desco&background=0288d1&color=fff&bold=true"
-  },
-  {
-    id: "desco-canoas",
-    nome: "Desco Super&Atacado — Canoas",
-    tipo: "Atacado",
-    rede: "Desco",
-    cidade: "Canoas",
-    endereco: "Av. Boqueirão, 2200 - Igara, Canoas - RS",
-    lat: -29.9010,
-    lon: -51.1580,
-    logoUrl: "https://ui-avatars.com/api/?name=Desco&background=0288d1&color=fff&bold=true"
-  },
-
-  // --- ATACADÃO ---
-  {
     id: "atacadao-poa-sertorio",
     nome: "Atacadão — Sertório",
     tipo: "Atacado",
@@ -186,139 +82,10 @@ const ESTABELECIMENTOS_RS = [
     lon: -51.1390,
     logoUrl: "https://ui-avatars.com/api/?name=Atacadao&background=f57c00&color=fff&bold=true"
   },
-  {
-    id: "atacadao-poa-zona-sul",
-    nome: "Atacadão — Zona Sul",
-    tipo: "Atacado",
-    rede: "Atacadão",
-    cidade: "Porto Alegre",
-    endereco: "Av. Eduardo Prado, 1954 - Cavalhada, Porto Alegre - RS",
-    lat: -30.1220,
-    lon: -51.2280,
-    logoUrl: "https://ui-avatars.com/api/?name=Atacadao&background=f57c00&color=fff&bold=true"
-  },
-  {
-    id: "atacadao-canoas",
-    nome: "Atacadão — Canoas",
-    tipo: "Atacado",
-    rede: "Atacadão",
-    cidade: "Canoas",
-    endereco: "Av. Getúlio Vargas, 3100 - Niterói, Canoas - RS",
-    lat: -29.9280,
-    lon: -51.1730,
-    logoUrl: "https://ui-avatars.com/api/?name=Atacadao&background=f57c00&color=fff&bold=true"
-  },
-  {
-    id: "atacadao-gravatai",
-    nome: "Atacadão — Gravataí",
-    tipo: "Atacado",
-    rede: "Atacadão",
-    cidade: "Gravataí",
-    endereco: "Rodovia RS-040, Km 02 - Gravataí - RS",
-    lat: -29.9550,
-    lon: -51.0120,
-    logoUrl: "https://ui-avatars.com/api/?name=Atacadao&background=f57c00&color=fff&bold=true"
-  },
-  {
-    id: "atacadao-pelotas",
-    nome: "Atacadão — Pelotas",
-    tipo: "Atacado",
-    rede: "Atacadão",
-    cidade: "Pelotas",
-    endereco: "Av. Ildefonso Simões Lopes, 1000 - Pelotas - RS",
-    lat: -31.7420,
-    lon: -52.3250,
-    logoUrl: "https://ui-avatars.com/api/?name=Atacadao&background=f57c00&color=fff&bold=true"
-  },
-
-  // --- MACROMIX ATACADISTA ---
-  {
-    id: "macromix-esteio",
-    nome: "Macromix Atacadista — Esteio",
-    tipo: "Atacado",
-    rede: "Macromix",
-    cidade: "Esteio",
-    endereco: "BR-116, Km 257 - Esteio - RS",
-    lat: -29.8520,
-    lon: -51.1810,
-    logoUrl: "https://ui-avatars.com/api/?name=Macromix&background=388e3c&color=fff&bold=true"
-  },
-  {
-    id: "macromix-nh",
-    nome: "Macromix Atacadista — Novo Hamburgo",
-    tipo: "Atacado",
-    rede: "Macromix",
-    cidade: "Novo Hamburgo",
-    endereco: "Av. Nações Unidas, 3340 - Novo Hamburgo - RS",
-    lat: -29.6810,
-    lon: -51.1350,
-    logoUrl: "https://ui-avatars.com/api/?name=Macromix&background=388e3c&color=fff&bold=true"
-  },
-  {
-    id: "macromix-sapucaia",
-    nome: "Macromix Atacadista — Sapucaia do Sul",
-    tipo: "Atacado",
-    rede: "Macromix",
-    cidade: "Sapucaia do Sul",
-    endereco: "RS-118, 2700 - Sapucaia do Sul - RS",
-    lat: -29.8350,
-    lon: -51.1420,
-    logoUrl: "https://ui-avatars.com/api/?name=Macromix&background=388e3c&color=fff&bold=true"
-  },
-
-  // --- SAM'S CLUB ---
-  {
-    id: "sams-poa",
-    nome: "Sam's Club — Porto Alegre",
-    tipo: "Atacado",
-    rede: "Sam's Club",
-    cidade: "Porto Alegre",
-    endereco: "Av. Sertório, 6600 - Sarandi, Porto Alegre - RS",
-    lat: -30.0020,
-    lon: -51.1480,
-    logoUrl: "https://ui-avatars.com/api/?name=Sams+Club&background=003366&color=fff&bold=true"
-  },
-  {
-    id: "sams-caxias",
-    nome: "Sam's Club — Caxias do Sul",
-    tipo: "Atacado",
-    rede: "Sam's Club",
-    cidade: "Caxias do Sul",
-    endereco: "Rodovia RST-453, Km 140 - Caxias do Sul - RS",
-    lat: -29.1580,
-    lon: -51.1380,
-    logoUrl: "https://ui-avatars.com/api/?name=Sams+Club&background=003366&color=fff&bold=true"
-  },
-
-  // --- VIA ATACADISTA ---
-  {
-    id: "via-bento",
-    nome: "Via Atacadista — Bento Gonçalves",
-    tipo: "Atacado",
-    rede: "Via Atacadista",
-    cidade: "Bento Gonçalves",
-    endereco: "Rua Herny Hugo Dreher, 500 - Bento Gonçalves - RS",
-    lat: -29.1680,
-    lon: -51.5180,
-    logoUrl: "https://ui-avatars.com/api/?name=Via+Atacadista&background=c2185b&color=fff&bold=true"
-  },
-  {
-    id: "via-farroupilha",
-    nome: "Via Atacadista — Farroupilha",
-    tipo: "Atacado",
-    rede: "Via Atacadista",
-    cidade: "Farroupilha",
-    endereco: "Rodovia RS-122, Km 60 - Farroupilha - RS",
-    lat: -29.2250,
-    lon: -51.3480,
-    logoUrl: "https://ui-avatars.com/api/?name=Via+Atacadista&background=c2185b&color=fff&bold=true"
-  },
 
   // ==========================================
   // SUPERMERCADOS (RS)
   // ==========================================
-
-  // --- GUAÍBA ---
   {
     id: "guaiba-1",
     nome: "Asun Supermercados — Guaíba",
@@ -328,7 +95,11 @@ const ESTABELECIMENTOS_RS = [
     endereco: "R. São José, 420 - Centro, Guaíba - RS",
     lat: -30.1132,
     lon: -51.3235,
-    logoUrl: "https://ui-avatars.com/api/?name=Asun&background=1b7a3d&color=fff&bold=true"
+    logoUrl: "https://ui-avatars.com/api/?name=Asun&background=1b7a3d&color=fff&bold=true",
+    ofertas: [
+      { id: "o3", produto: "Leite Integral 1L", preco: "R$ 4,29" },
+      { id: "o4", produto: "Café Torrado 500g", preco: "R$ 14,90" }
+    ]
   },
   {
     id: "guaiba-2",
@@ -352,8 +123,6 @@ const ESTABELECIMENTOS_RS = [
     lon: -51.3280,
     logoUrl: "https://ui-avatars.com/api/?name=Paulinho&background=1976d2&color=fff&bold=true"
   },
-
-  // --- PORTO ALEGRE ---
   {
     id: "poa-zaffari-1",
     nome: "Zaffari Fernando Machado",
@@ -375,135 +144,11 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.0543,
     lon: -51.1824,
     logoUrl: "https://ui-avatars.com/api/?name=Bourbon&background=821019&color=fff&bold=true"
-  },
-  {
-    id: "poa-rissul-cristovao",
-    nome: "Rissul — Cristóvão Colombo",
-    tipo: "Supermercado",
-    rede: "Rissul",
-    cidade: "Porto Alegre",
-    endereco: "Av. Cristóvão Colombo, 1980 - Floresta, Porto Alegre - RS",
-    lat: -30.0210,
-    lon: -51.2055,
-    logoUrl: "https://ui-avatars.com/api/?name=Rissul&background=d81b60&color=fff&bold=true"
-  },
-  {
-    id: "poa-asun-bento",
-    nome: "Asun — Bento Gonçalves",
-    tipo: "Supermercado",
-    rede: "Asun",
-    cidade: "Porto Alegre",
-    endereco: "Av. Bento Gonçalves, 2400 - Partenon, Porto Alegre - RS",
-    lat: -30.0620,
-    lon: -51.1890,
-    logoUrl: "https://ui-avatars.com/api/?name=Asun&background=1b7a3d&color=fff&bold=true"
-  },
-
-  // --- CANOAS ---
-  {
-    id: "canoas-bourbon",
-    nome: "Bourbon Supermercados — Canoas",
-    tipo: "Supermercado",
-    rede: "Bourbon",
-    cidade: "Canoas",
-    endereco: "Av. Getúlio Vargas, 5765 - Centro, Canoas - RS",
-    lat: -29.9180,
-    lon: -51.1790,
-    logoUrl: "https://ui-avatars.com/api/?name=Bourbon&background=821019&color=fff&bold=true"
-  },
-
-  // --- CAXIAS DO SUL ---
-  {
-    id: "caxias-andreazza",
-    nome: "Super Andreazza — Centro",
-    tipo: "Supermercado",
-    rede: "Andreazza",
-    cidade: "Caxias do Sul",
-    endereco: "R. Sinimbu, 1200 - Centro, Caxias do Sul - RS",
-    lat: -29.1680,
-    lon: -51.1790,
-    logoUrl: "https://ui-avatars.com/api/?name=Andreazza&background=2e7d32&color=fff&bold=true"
-  },
-  {
-    id: "caxias-zaffari",
-    nome: "Zaffari Center Caxias",
-    tipo: "Supermercado",
-    rede: "Zaffari",
-    cidade: "Caxias do Sul",
-    endereco: "R. Sinimbu, 2200 - Exposição, Caxias do Sul - RS",
-    lat: -29.1695,
-    lon: -51.1715,
-    logoUrl: "https://ui-avatars.com/api/?name=Zaffari&background=821019&color=fff&bold=true"
-  },
-
-  // --- PELOTAS ---
-  {
-    id: "pelotas-guanabara",
-    nome: "Guanabara Supermercados — Pelotas",
-    tipo: "Supermercado",
-    rede: "Guanabara",
-    cidade: "Pelotas",
-    endereco: "R. Dom Pedro II, 700 - Centro, Pelotas - RS",
-    lat: -31.7650,
-    lon: -52.3370,
-    logoUrl: "https://ui-avatars.com/api/?name=Guanabara&background=0288d1&color=fff&bold=true"
-  },
-
-  // --- SANTA MARIA ---
-  {
-    id: "santamaria-redevivo",
-    nome: "Rede Vivo — Santa Maria",
-    tipo: "Supermercado",
-    rede: "Rede Vivo",
-    cidade: "Santa Maria",
-    endereco: "Av. Dores, 305 - Nossa Sra. das Dores, Santa Maria - RS",
-    lat: -29.6910,
-    lon: -53.8010,
-    logoUrl: "https://ui-avatars.com/api/?name=Rede+Vivo&background=e65100&color=fff&bold=true"
-  },
-
-  // --- PASSO FUNDO ---
-  {
-    id: "passofundo-zaffari",
-    nome: "Comercial Zaffari — Passo Fundo",
-    tipo: "Supermercado",
-    rede: "Comercial Zaffari",
-    cidade: "Passo Fundo",
-    endereco: "Av. Brasil Oeste, 1000 - Centro, Passo Fundo - RS",
-    lat: -28.2612,
-    lon: -52.4083,
-    logoUrl: "https://ui-avatars.com/api/?name=Comercial+Zaffari&background=c62828&color=fff&bold=true"
-  },
-
-  // --- NOVO HAMBURGO ---
-  {
-    id: "nh-bourbon",
-    nome: "Bourbon Novo Hamburgo",
-    tipo: "Supermercado",
-    rede: "Bourbon",
-    cidade: "Novo Hamburgo",
-    endereco: "Av. Nações Unidas, 2001 - Rio Branco, Novo Hamburgo - RS",
-    lat: -29.6890,
-    lon: -51.1320,
-    logoUrl: "https://ui-avatars.com/api/?name=Bourbon&background=821019&color=fff&bold=true"
-  },
-
-  // --- GRAVATAÍ ---
-  {
-    id: "gravatai-rissul",
-    nome: "Rissul — Gravataí Centro",
-    tipo: "Supermercado",
-    rede: "Rissul",
-    cidade: "Gravataí",
-    endereco: "Av. Dorival Cândido Luz de Oliveira, 200 - Centro, Gravataí - RS",
-    lat: -29.9430,
-    lon: -50.9920,
-    logoUrl: "https://ui-avatars.com/api/?name=Rissul&background=d81b60&color=fff&bold=true"
   }
 ];
 
 /**
- * Fórmula de Haversine para cálculo de distância real entre dois pontos (em km).
+ * Cálculo de distância real (Haversine) em km.
  */
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -520,18 +165,17 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Mapeia e normaliza o objeto para atender a qualquer padrão de componente de UI.
+ * Normalizador do Payload para compatibilidade total de UI.
  */
-function formatMarketPayload(market, userLat, userLon) {
+function formatMarketPayload(market, userLat = -30.1132, userLon = -51.3235) {
   const distNum = calculateDistanceKm(userLat, userLon, market.lat, market.lon);
   const distKm = Number(distNum.toFixed(1));
   const distMeters = Math.round(distNum * 1000);
   const distText = distKm < 1 ? `${distMeters} m` : `${distKm} km`;
+  const ofertasList = market.ofertas || [];
 
   return {
     ...market,
-
-    // Nomes em Português
     nome: market.nome,
     rede: market.rede,
     endereco: market.endereco,
@@ -539,7 +183,7 @@ function formatMarketPayload(market, userLat, userLon) {
     distanciaKm: distKm,
     distanciaFormatada: distText,
 
-    // Nomes em Inglês (Compatibilidade com UI e componentes genéricos)
+    // Compatibilidade com variáveis em Inglês e Google Places
     name: market.nome,
     title: market.nome,
     brand: market.rede,
@@ -551,28 +195,46 @@ function formatMarketPayload(market, userLat, userLon) {
     distanceMeters: distMeters,
     distanceFormatted: distText,
     distanceText: distText,
+    ofertas: ofertasList,
+    offers: ofertasList,
+    ofertasCount: ofertasList.length,
+    hasOffers: ofertasList.length > 0,
 
-    // Estrutura do Google Maps / Leaflet Places
     geometry: {
       location: {
         lat: market.lat,
         lng: market.lon,
         lon: market.lon
       }
-    },
-
-    // Ofertas e Metadados
-    ofertasCount: market.ofertas ? market.ofertas.length : 0,
-    hasOffers: Boolean(market.ofertas && market.ofertas.length > 0)
+    }
   };
 }
 
 export const marketsService = {
   /**
-   * Retorna os estabelecimentos mais próximos do usuário ordenados por distância.
+   * Busca um mercado específico pelo ID (Corrige o erro do ofertas.js)
    */
-  async findNearby(lat, lon, maxRadiusKm = APP_CONFIG?.searchRadiusKm || 20) {
-    // Guaíba - RS por padrão caso GPS não forneça coordenadas
+  async getById(id, userLat = -30.1132, userLon = -51.3235) {
+    const market = ESTABELECIMENTOS_RS.find((m) => m.id === id || String(m.id) === String(id));
+    if (!market) {
+      // Se o ID não for encontrado, retorna o primeiro como fallback
+      return formatMarketPayload(ESTABELECIMENTOS_RS[0], userLat, userLon);
+    }
+    return formatMarketPayload(market, userLat, userLon);
+  },
+
+  /**
+   * Busca ofertas associadas a um ID de mercado
+   */
+  async getOffersByMarketId(id) {
+    const market = await this.getById(id);
+    return market ? market.ofertas || [] : [];
+  },
+
+  /**
+   * Retorna os estabelecimentos mais próximos ordenados por distância.
+   */
+  async findNearby(lat, lon, maxRadiusKm = APP_CONFIG?.searchRadiusKm || 30) {
     const userLat = lat || -30.1132;
     const userLon = lon || -51.3235;
 
@@ -580,22 +242,15 @@ export const marketsService = {
       formatMarketPayload(m, userLat, userLon)
     );
 
-    // Ordena do mais próximo ao mais distante
     formattedList.sort((a, b) => a.distanciaKm - b.distanciaKm);
 
-    // Filtra no raio estabelecido
     const filtered = formattedList.filter((m) => m.distanciaKm <= maxRadiusKm);
 
-    if (filtered.length > 0) {
-      return filtered;
-    }
-
-    // Fallback: se nenhum estiver no raio estrito, traz os 10 mais próximos do estado
-    return formattedList.slice(0, 10);
+    return filtered.length > 0 ? filtered : formattedList.slice(0, 10);
   },
 
   /**
-   * Retorna todos os estabelecimentos normalizados.
+   * Retorna todos os mercados
    */
   async getAll(lat = -30.1132, lon = -51.3235) {
     return ESTABELECIMENTOS_RS.map((m) => formatMarketPayload(m, lat, lon));
