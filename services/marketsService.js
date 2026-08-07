@@ -1,7 +1,7 @@
 /**
  * src/services/marketsService.js
- * Base completa de Supermercados, Atacados e Atacarejos do Rio Grande do Sul.
- * Calcula distâncias reais em relação à localização do usuário.
+ * Base completa de Supermercados, Atacados e Atacarejos do RS.
+ * Inclui mapeamento duplo de propriedades para compatibilidade total de UI (Google/Card).
  */
 
 import { APP_CONFIG } from "../config/config.js";
@@ -519,44 +519,85 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+/**
+ * Mapeia e normaliza o objeto para atender a qualquer padrão de componente de UI.
+ */
+function formatMarketPayload(market, userLat, userLon) {
+  const distNum = calculateDistanceKm(userLat, userLon, market.lat, market.lon);
+  const distKm = Number(distNum.toFixed(1));
+  const distMeters = Math.round(distNum * 1000);
+  const distText = distKm < 1 ? `${distMeters} m` : `${distKm} km`;
+
+  return {
+    ...market,
+
+    // Nomes em Português
+    nome: market.nome,
+    rede: market.rede,
+    endereco: market.endereco,
+    cidade: market.cidade,
+    distanciaKm: distKm,
+    distanciaFormatada: distText,
+
+    // Nomes em Inglês (Compatibilidade com UI e componentes genéricos)
+    name: market.nome,
+    title: market.nome,
+    brand: market.rede,
+    address: market.endereco,
+    vicinity: market.endereco,
+    city: market.cidade,
+    distance: distKm,
+    distanceKm: distKm,
+    distanceMeters: distMeters,
+    distanceFormatted: distText,
+    distanceText: distText,
+
+    // Estrutura do Google Maps / Leaflet Places
+    geometry: {
+      location: {
+        lat: market.lat,
+        lng: market.lon,
+        lon: market.lon
+      }
+    },
+
+    // Ofertas e Metadados
+    ofertasCount: market.ofertas ? market.ofertas.length : 0,
+    hasOffers: Boolean(market.ofertas && market.ofertas.length > 0)
+  };
+}
+
 export const marketsService = {
   /**
-   * Retorna os estabelecimentos (Supermercados e Atacados) mais próximos do usuário.
-   * @param {number} lat - Latitude do usuário
-   * @param {number} lon - Longitude do usuário
-   * @param {number} maxRadiusKm - Raio máximo de busca
+   * Retorna os estabelecimentos mais próximos do usuário ordenados por distância.
    */
-  async findNearby(lat, lon, maxRadiusKm = APP_CONFIG.searchRadiusKm || 20) {
-    // Padrão: Guaíba/RS se a localização ainda não tiver sido detectada
+  async findNearby(lat, lon, maxRadiusKm = APP_CONFIG?.searchRadiusKm || 20) {
+    // Guaíba - RS por padrão caso GPS não forneça coordenadas
     const userLat = lat || -30.1132;
     const userLon = lon || -51.3235;
 
-    const listWithDistance = ESTABELECIMENTOS_RS.map((market) => {
-      const dist = calculateDistanceKm(userLat, userLon, market.lat, market.lon);
-      return {
-        ...market,
-        distanciaKm: Number(dist.toFixed(1)),
-      };
-    });
+    const formattedList = ESTABELECIMENTOS_RS.map((m) =>
+      formatMarketPayload(m, userLat, userLon)
+    );
 
-    // Ordena do mais próximo para o mais distante
-    listWithDistance.sort((a, b) => a.distanciaKm - b.distanciaKm);
+    // Ordena do mais próximo ao mais distante
+    formattedList.sort((a, b) => a.distanciaKm - b.distanciaKm);
 
-    // Filtra dentro do raio especificado
-    const filtered = listWithDistance.filter((m) => m.distanciaKm <= maxRadiusKm);
+    // Filtra no raio estabelecido
+    const filtered = formattedList.filter((m) => m.distanciaKm <= maxRadiusKm);
 
     if (filtered.length > 0) {
       return filtered;
     }
 
-    // Se estiver fora do raio padrão, retorna os 8 mais próximos do RS
-    return listWithDistance.slice(0, 8);
+    // Fallback: se nenhum estiver no raio estrito, traz os 10 mais próximos do estado
+    return formattedList.slice(0, 10);
   },
 
   /**
-   * Retorna todos os estabelecimentos cadastrados no Rio Grande do Sul.
+   * Retorna todos os estabelecimentos normalizados.
    */
-  async getAll() {
-    return ESTABELECIMENTOS_RS;
+  async getAll(lat = -30.1132, lon = -51.3235) {
+    return ESTABELECIMENTOS_RS.map((m) => formatMarketPayload(m, lat, lon));
   }
 };
