@@ -1,1 +1,14 @@
-"termosPorCategoria": {}
+"mapaCategoriaPorPalavraChave": {
+    "padaria": ["padaria", "pao"],
+    "rotisseria": ["rotisseria", "pronto"],
+    "hortifruti": ["hortifruti"],
+    "laticinios": ["laticinios", "laticinio"],
+    "mercearia-liquida": ["bebida", "liquida"],
+    "mercearia": ["mercearia"],
+    "matinais": ["matinais", "matinal"],
+    "limpeza": ["limpeza"],
+    "perfumaria": ["perfumaria", "higiene"],
+    "bazar": ["bazar"],
+    "sazonais": ["sazonal", "sazonais"],
+    "eletronicos": ["eletronico", "eletronicos", "eletro"]
+  }
