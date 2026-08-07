@@ -87,9 +87,29 @@ function dismissSplash() {
 // Timeout de segurança: força a remoção da splash após 3s se por algum motivo travar
 setTimeout(dismissSplash, 3000);
 
-// ---- Service Worker (funcionamento offline) ----
+// ---- Service Worker (funcionamento offline/PWA) ----
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js").catch((err) => {
-    console.warn("Falha ao registrar Service Worker:", err);
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./service-worker.js?v=1.0.1")
+      .then((registration) => {
+        console.log("[PWA] Service Worker registrado:", registration.scope);
+
+        // Detecta novas versões publicadas no servidor
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                console.log("[PWA] Nova versão instalada. Recarregando página...");
+                window.location.reload();
+              }
+            });
+          }
+        });
+      })
+      .catch((err) => {
+        console.warn("[PWA] Falha ao registrar Service Worker:", err);
+      });
   });
 }
