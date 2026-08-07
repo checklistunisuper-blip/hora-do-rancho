@@ -19,17 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do repositório
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2 # Atualizado para a versão com suporte nativo a v24
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Enviar todo o projeto como artefato do Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: "."
+        uses: actions/upload-pages-artifact@v3.0.1
 
   deploy:
     needs: build
