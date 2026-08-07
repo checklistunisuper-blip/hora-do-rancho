@@ -1,0 +1,36 @@
+name: Atualização Automática de Ofertas
+
+on:
+  schedule:
+    # Executa automaticamente todos os dias às 06:00 da manhã (Horário de Brasília)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Permite executar manualmente pelo painel do GitHub
+
+jobs:
+  scrape-offers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Executar robô de scraping com Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/scraper.js
+
+      - name: Salvar e atualizar alterações no repositório
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/ofertas-capturadas.json
+          git commit -m "chore: ofertas atualizadas automaticamente via IA [skip ci]" || exit 0
+          git push
