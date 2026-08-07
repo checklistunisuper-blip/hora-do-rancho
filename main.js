@@ -21,17 +21,36 @@ const temaSalvo = storageService.getPreference("tema", "claro");
 document.documentElement.dataset.theme = temaSalvo;
 
 const outlet = document.getElementById("app-outlet");
-document.getElementById("bottom-nav-slot").outerHTML = bottomNav();
+const navSlot = document.getElementById("bottom-nav-slot");
+
+if (navSlot) {
+  navSlot.outerHTML = bottomNav();
+}
 
 const router = new Router(outlet);
 
 function registerPage(path, pageModule) {
   router.register(path, async (params) => {
-    const html = await pageModule.render(params);
-    return {
-      html,
-      afterRender: () => pageModule.afterRender?.(router, params),
-    };
+    try {
+      const html = await pageModule.render(params);
+      return {
+        html,
+        afterRender: () => pageModule.afterRender?.(router, params),
+      };
+    } catch (err) {
+      console.error(`Erro ao renderizar a rota [${path}]:`, err);
+      // Retorna uma interface de fallback amigável em vez de travar o app
+      return {
+        html: `
+          <div style="padding: 2rem; text-align: center;">
+            <h2>Ops! Algo deu errado.</h2>
+            <p>Não foi possível carregar esta tela no momento.</p>
+            <button onclick="location.reload()" style="padding: 0.5rem 1rem; margin-top: 1rem;">Tentar Novamente</button>
+          </div>
+        `,
+        afterRender: () => {},
+      };
+    }
   });
 }
 
@@ -43,18 +62,32 @@ registerPage("/rancho", ranchoPage);
 registerPage("/favoritos", favoritosPage);
 registerPage("/perfil", perfilPage);
 
-router.start();
-
-// ---- Splash screen: remove do DOM após a animação ----
-const splash = document.getElementById("splash");
-if (splash) {
-  setTimeout(() => splash.remove(), 2600);
+// ---- Função para remover a Splash Screen com segurança ----
+function dismissSplash() {
+  const splash = document.getElementById("splash");
+  if (splash) {
+    splash.style.opacity = "0";
+    splash.style.transition = "opacity 0.4s ease";
+    setTimeout(() => splash.remove(), 400);
+  }
 }
 
+// Inicia o roteador e esconde a splash assim que carregar
+(async () => {
+  try {
+    await router.start();
+  } catch (err) {
+    console.error("Erro no router.start():", err);
+  } finally {
+    // Remove a splash screen independentemente de ter dado erro ou sucesso
+    dismissSplash();
+  }
+})();
+
+// Timeout de segurança: força a remoção da splash após 3s se por algum motivo travar
+setTimeout(dismissSplash, 3000);
+
 // ---- Service Worker (funcionamento offline) ----
-// Registrado imediatamente (sem esperar o load completo da página) para
-// ferramentas de auditoria como o PWABuilder/Lighthouse conseguirem
-// detectá-lo mesmo com recursos externos (mapa) ainda carregando.
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js").catch((err) => {
     console.warn("Falha ao registrar Service Worker:", err);
