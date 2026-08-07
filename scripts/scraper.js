@@ -51,7 +51,11 @@ async function runScraper() {
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const rawText = response.text().replace(/```json|```/g, '').trim();
+      
+      // Limpa qualquer formatação markdown adicional do texto retornado pela IA
+      let rawText = response.text().trim();
+      rawText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
+      
       const ofertas = JSON.parse(rawText);
       
       console.log(`✅ ${ofertas.length} ofertas capturadas para ${market.nome}`);
@@ -64,8 +68,8 @@ async function runScraper() {
 
   await browser.close();
 
-  // Salva o resultado em um arquivo JSON local na pasta src/data
-  const outputPath = path.resolve('src/data/ofertas-capturadas.json');
+  // Salva o resultado no diretório estático público (public/data/ofertas-capturadas.json)
+  const outputPath = path.resolve('public/data/ofertas-capturadas.json');
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, JSON.stringify(updatedOffers, null, 2), 'utf-8');
   console.log(`💾 Ofertas salvas com sucesso em: ${outputPath}`);
