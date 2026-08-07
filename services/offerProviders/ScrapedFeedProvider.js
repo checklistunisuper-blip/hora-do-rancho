@@ -102,6 +102,7 @@ export class ScrapedFeedProvider extends OfferProvider {
             marca: item.marca,
             categoria: item.categoria,
             preco: item.preco,
+            precoOriginal: item.precoOriginal || null,
             unidade: item.unidade,
             imagem: item.imagem,
             mercadoId: market.id,
