@@ -15,8 +15,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Hora do Rancho" />
 
-  <!-- Estilos -->
-  <link rel="stylesheet" href="./style.css" />
+  <!-- Estilos com Cache Busting -->
+  <link rel="stylesheet" href="./style.css?v=1.0.1" />
 
   <!-- Leaflet (mapa open source, gratuito, sem chave de API) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -37,6 +37,7 @@
     <div id="bottom-nav-slot"></div>
   </div>
 
-  <script type="module" src="./main.js"></script>
+  <!-- Script Principal com Parâmetro de Versão para Quebrar o Cache -->
+  <script type="module" src="./main.js?v=1.0.1"></script>
 </body>
 </html>
