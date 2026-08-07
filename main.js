@@ -1,4 +1,3 @@
-
 /**
  * main.js — ponto de entrada do HORA DO RANCHO.
  * Inicializa o roteador, registra as páginas, monta a navegação inferior,
@@ -53,10 +52,11 @@ if (splash) {
 }
 
 // ---- Service Worker (funcionamento offline) ----
+// Registrado imediatamente (sem esperar o load completo da página) para
+// ferramentas de auditoria como o PWABuilder/Lighthouse conseguirem
+// detectá-lo mesmo com recursos externos (mapa) ainda carregando.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch((err) => {
-      console.warn("Falha ao registrar Service Worker:", err);
-    });
+  navigator.serviceWorker.register("./service-worker.js").catch((err) => {
+    console.warn("Falha ao registrar Service Worker:", err);
   });
 }
