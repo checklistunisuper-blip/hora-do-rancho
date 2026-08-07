@@ -1,4 +1,4 @@
-name: Coletar ofertas reais (Zaffari, Carrefour...)
+name: Coletar ofertas reais (VTEX + OCR Encartes)
 
 on:
   schedule:
@@ -21,6 +21,16 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Instalar Tesseract OCR e dependências do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por libtesseract-dev libgl1-mesa-glx
+
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytesseract pillow opencv-python-headless beautifulsoup4
+
       - name: Rodar o coletor
         run: python3 scripts/scraper/scrape_vtex.py
 
@@ -29,5 +39,5 @@ jobs:
           git config user.name "hora-do-rancho-bot"
           git config user.email "actions@github.com"
           git add assets/data/scraped-offers.json
-          git diff --cached --quiet && echo "Nenhuma mudança nas ofertas hoje." || git commit -m "chore: atualizar ofertas coletadas ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+          git diff --cached --quiet && echo "Nenhuma mudança nas ofertas hoje." || git commit -m "chore: atualizar ofertas coletadas (VTEX + OCR) ($(date -u +'%Y-%m-%d %H:%M UTC'))"
           git push
