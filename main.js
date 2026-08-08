@@ -6,7 +6,9 @@
 
 import { Router } from "./utils/router.js";
 import { bottomNav } from "./components/bottomNav.js";
-import { storageService } from "./services/storageService.js";
+
+// Rota ajustada para a localização exata do storageService
+import { storageService } from "./services/offerProviders/storageService.js";
 
 import * as homePage from "./pages/home.js";
 import * as mapaPage from "./pages/mapa.js";
@@ -32,7 +34,7 @@ function registerPage(path, pageModule) {
     const html = await pageModule.render(params);
     return {
       html,
-      afterRender: () => pageModule.afterRender?.(router, params),
+      afterRender: (r, p) => pageModule.afterRender?.(r || router, p || params),
     };
   });
 }
@@ -56,9 +58,6 @@ if (splash) {
 }
 
 // ---- Service Worker (funcionamento offline) ----
-// Registrado imediatamente (sem esperar o load completo da página) para
-// ferramentas de auditoria como o PWABuilder/Lighthouse conseguirem
-// detectá-lo mesmo com recursos externos (mapa) ainda carregando.
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js").catch((err) => {
     console.warn("Falha ao registrar Service Worker:", err);
