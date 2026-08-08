@@ -15,12 +15,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Hora do Rancho" />
 
-  <!-- Estilos com Cache Busting -->
-  <link rel="stylesheet" href="./style.css?v=1.0.2" />
+  <!-- Estilos -->
+  <link rel="stylesheet" href="./style.css" />
 
   <!-- Leaflet (mapa open source, gratuito, sem chave de API) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- Tesseract.js (OCR gratuito e open source, roda 100% no navegador) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js"></script>
 </head>
 <body>
 
@@ -37,7 +40,6 @@
     <div id="bottom-nav-slot"></div>
   </div>
 
-  <!-- Script Principal com Parâmetro de Versão para Quebrar o Cache -->
-  <script type="module" src="./main.js?v=1.0.2"></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
