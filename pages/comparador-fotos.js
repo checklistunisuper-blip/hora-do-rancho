@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config/config.js";
-import { storageService } from "../services/storageService.js";
+import { storageService } from "../services/offerProviders/storageService.js";
 import { parseOfertasDoTexto, detectarCategoria } from "../utils/ocrParser.js";
 import { formatarMoeda, categoriaLabel } from "../utils/format.js";
 import { categoryChipList } from "../components/categoryChip.js";
