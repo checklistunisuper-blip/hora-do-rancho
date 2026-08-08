@@ -1,14 +1,15 @@
 "mapaCategoriaPorPalavraChave": {
-    "padaria": ["padaria", "pao"],
-    "rotisseria": ["rotisseria", "pronto"],
-    "hortifruti": ["hortifruti"],
-    "laticinios": ["laticinios", "laticinio"],
-    "mercearia-liquida": ["bebida", "liquida"],
-    "mercearia": ["mercearia"],
-    "matinais": ["matinais", "matinal"],
-    "limpeza": ["limpeza"],
-    "perfumaria": ["perfumaria", "higiene"],
-    "bazar": ["bazar"],
-    "sazonais": ["sazonal", "sazonais"],
-    "eletronicos": ["eletronico", "eletronicos", "eletro"]
-  }
+  "padaria": ["padaria", "pao"],
+  "rotisseria": ["rotisseria", "pronto"],
+  "hortifruti": ["hortifruti"],
+  "laticinios": ["laticinios", "laticinio"],
+  "mercearia-liquida": ["bebida", "liquida"],
+  "mercearia": ["mercearia"],
+  "matinais": ["matinais", "matinal"],
+  "limpeza": ["limpeza"],
+  "perfumaria": ["perfumaria", "higiene"],
+  "bazar": ["bazar"],
+  "sazonais": ["sazonal", "sazonais"],
+  "eletronicos": ["eletronico", "eletronicos", "eletro"],
+  "acougue": ["acougue", "açougue", "carne", "carnes", "corte", "cortes", "bovino", "suino", "frango", "linguica", "linguiça", "costela", "alcatra", "picanha"]
+}
