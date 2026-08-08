@@ -17,7 +17,7 @@ function getMarketLogo(market) {
   if (market.logoUrl || market.logo) {
     return market.logoUrl || market.logo;
   }
-  const nome = market.nome || market.rede || "Mercado";
+  const nome = market.name || market.nome || market.network || market.rede || "Mercado";
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=1b7a3d&color=fff&bold=true&length=2`;
 }
 
@@ -42,7 +42,7 @@ export async function afterRender(router) {
   const listEl = document.getElementById("markets-list");
   const mapEl = document.getElementById("leaflet-map");
 
-  if (!pos || !pos.latitude || !pos.longitude) {
+  if (!pos || (!pos.latitude && !pos.lat) || (!pos.longitude && !pos.lng)) {
     if (listEl) {
       listEl.innerHTML = `<p class="muted">Detecte sua localização na tela inicial para ver o mapa.</p>`;
     }
@@ -50,8 +50,18 @@ export async function afterRender(router) {
     return;
   }
 
+  const userLat = Number(pos.latitude ?? pos.lat);
+  const userLng = Number(pos.longitude ?? pos.lng);
+
   const radius = APP_CONFIG?.searchRadiusKm || 10;
-  const markets = await marketsService.findNearby(pos.latitude, pos.longitude).catch(() => []);
+  
+  let markets = [];
+  try {
+    markets = await Promise.resolve(marketsService.findNearby(userLat, userLng));
+  } catch (err) {
+    console.error("Erro ao buscar mercados próximos:", err);
+    markets = [];
+  }
 
   if (!markets || !markets.length) {
     if (listEl) {
@@ -59,13 +69,20 @@ export async function afterRender(router) {
     }
   } else {
     const favs = await favoritesService.getAll("mercado").catch(() => []);
-    const favIds = new Set(favs.map((f) => f.refId || f.id));
+    const favIds = new Set(favs.map((f) => String(f.refId || f.id)));
 
     if (listEl) {
       listEl.innerHTML = markets
         .map((m) => {
           const logoUrl = getMarketLogo(m);
-          return marketCard({ ...m, logoUrl }, { isFavorite: favIds.has(m.id) });
+          // Normaliza os campos para garantir retrocompatibilidade
+          const normalizedMarket = {
+            ...m,
+            nome: m.name || m.nome,
+            endereco: m.address || m.endereco,
+            logoUrl
+          };
+          return marketCard(normalizedMarket, { isFavorite: favIds.has(String(m.id)) });
         })
         .join("");
     }
@@ -73,7 +90,7 @@ export async function afterRender(router) {
 
   // Inicialização do Google Maps
   if (window.L && mapEl) {
-    const map = L.map(mapEl).setView([pos.latitude, pos.longitude], 14);
+    const map = L.map(mapEl).setView([userLat, userLng], 14);
 
     // Desativa o prefixo "Leaflet |" da atribuição
     if (map.attributionControl) {
@@ -88,7 +105,7 @@ export async function afterRender(router) {
     }).addTo(map);
 
     // Pin do Usuário ("Você está aqui")
-    L.marker([pos.latitude, pos.longitude], {
+    L.marker([userLat, userLng], {
       icon: L.divIcon({
         className: "map-pin map-pin--user",
         html: `<div style="background: #2563eb; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">📍</div>`,
@@ -102,18 +119,20 @@ export async function afterRender(router) {
     // Pins dos Mercados com as Logos
     markets.forEach((m) => {
       const lat = m.lat ?? m.latitude;
-      const lon = m.lon ?? m.longitude;
+      const lon = m.lng ?? m.lon ?? m.longitude;
       if (!lat || !lon) return;
 
+      const marketName = m.name || m.nome || "Mercado";
+      const marketAddress = m.address || m.endereco || "Região próxima";
       const logoUrl = getMarketLogo(m);
-      const distKm = Number(m.distanciaKm || m.distancia || 0).toFixed(1);
+      const distKm = Number(m.distance ?? m.distanciaKm ?? m.distancia ?? 0).toFixed(1);
 
       // Ícone com foto/logo circular do mercado
       const customMarketIcon = L.divIcon({
         className: "map-pin map-pin--market",
         html: `
           <div style="background: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 2px solid #1b7a3d; box-shadow: 0 3px 8px rgba(0,0,0,0.3); overflow: hidden;">
-            <img src="${logoUrl}" alt="${m.nome}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=1b7a3d&color=fff';" />
+            <img src="${logoUrl}" alt="${marketName}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(marketName)}&background=1b7a3d&color=fff';" />
           </div>
         `,
         iconSize: [40, 40],
@@ -126,8 +145,8 @@ export async function afterRender(router) {
           <div style="display: flex; align-items: center; gap: 10px; font-family: sans-serif;">
             <img src="${logoUrl}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1px solid #1b7a3d;" />
             <div>
-              <strong style="font-size: 14px; color: #1b7a3d; display: block; margin-bottom: 2px;">${m.nome}</strong>
-              <small style="color: #666; display: block; margin-bottom: 2px;">${m.endereco || "Região próxima"}</small>
+              <strong style="font-size: 14px; color: #1b7a3d; display: block; margin-bottom: 2px;">${marketName}</strong>
+              <small style="color: #666; display: block; margin-bottom: 2px;">${marketAddress}</small>
               <span style="font-size: 12px; font-weight: bold; color: #333;">📏 ${distKm} km</span>
             </div>
           </div>
@@ -141,11 +160,9 @@ export async function afterRender(router) {
       const verOfertasBtn = e.target.closest('[data-action="ver-ofertas"], .btn-ver-ofertas, a[href*="ofertas"]');
       if (verOfertasBtn) {
         e.preventDefault();
-        // Obtém o id buscando nos atributos data ou na própria URL do href
         const marketId = verOfertasBtn.dataset.marketId || verOfertasBtn.dataset.id || verOfertasBtn.dataset.refId;
 
         if (marketId) {
-          // Passa tanto ?id= quanto ?mercadoId= para evitar divergência de parâmetros na rota
           const targetUrl = `#/ofertas?id=${marketId}&mercadoId=${marketId}`;
           if (router && typeof router.navigate === "function") {
             router.navigate(`/ofertas?id=${marketId}&mercadoId=${marketId}`);
@@ -159,9 +176,9 @@ export async function afterRender(router) {
       const favBtn = e.target.closest(".favorite-toggle");
       if (favBtn) {
         const marketId = favBtn.dataset.refId || favBtn.dataset.id;
-        const market = markets.find((m) => m.id === marketId);
+        const market = markets.find((m) => String(m.id) === String(marketId));
         const isFav = await favoritesService.toggle("mercado", marketId, {
-          nome: market?.nome,
+          nome: market?.name || market?.nome,
         });
         favBtn.textContent = isFav ? "❤️" : "🤍";
         favBtn.setAttribute("aria-pressed", isFav);
