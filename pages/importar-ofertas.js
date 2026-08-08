@@ -1,6 +1,7 @@
 import { APP_CONFIG } from "../config/config.js";
 import { storageService } from "../services/storageService.js";
-import { parseEncarteTexto } from "../src/utils/encarteParser.js";
+// Se o encarteParser.js usar export default, remova as chaves de { parseEncarteTexto }:
+import parseEncarteTexto from "../src/utils/encarteParser.js";
 import { formatarMoeda } from "../utils/format.js";
 
 export async function render() {
@@ -55,7 +56,9 @@ export async function afterRender(router) {
       return;
     }
 
-    const encontradas = parseEncarteTexto(texto);
+    const encontradas = typeof parseEncarteTexto === "function" 
+      ? parseEncarteTexto(texto) 
+      : (parseEncarteTexto.parseEncarteTexto ? parseEncarteTexto.parseEncarteTexto(texto) : []);
 
     let idCounter = 0;
     ofertasProcessadas = encontradas.map((item) => ({
