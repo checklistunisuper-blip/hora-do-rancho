@@ -174,8 +174,10 @@ export async function afterRender(router) {
 
   async function salvarOfertas() {
     const selecionadas = ofertasLidas.filter((o) => o.incluir && o.nome.trim() && o.preco > 0);
+    const salvarStatusEl = document.getElementById("salvar-status");
+
     if (!selecionadas.length) {
-      document.getElementById("salvar-status").textContent = "Nenhuma oferta marcada pra salvar.";
+      if (salvarStatusEl) salvarStatusEl.textContent = "Nenhuma oferta marcada pra salvar.";
       return;
     }
 
@@ -184,6 +186,7 @@ export async function afterRender(router) {
     const validade = new Date(agora);
     validade.setDate(validade.getDate() + 7);
 
+    // Estrutura para salvar na store de ofertas (IndexedDB/Storage)
     const ofertasParaSalvar = selecionadas.map((item) => ({
       id: item.id,
       nome: item.nome.trim(),
@@ -199,9 +202,46 @@ export async function afterRender(router) {
       fonte: "foto-manual",
     }));
 
-    await storageService.putMany(APP_CONFIG.db.stores.offers, ofertasParaSalvar);
+    // 1. Salva na store principal de ofertas
+    try {
+      if (APP_CONFIG?.db?.stores?.offers && storageService?.putMany) {
+        await storageService.putMany(APP_CONFIG.db.stores.offers, ofertasParaSalvar);
+      }
+    } catch (e) {
+      console.warn("Erro ao salvar na store de ofertas:", e);
+    }
 
-    document.getElementById("salvar-status").innerHTML =
-      `✅ Salvo! <a href="#/comparador" class="link">Ver no comparador</a>`;
+    // 2. Integrar e mesclar no repositório 'ofertas_importadas'
+    const ofertasImportadasExistentes = storageService.getPreference("ofertas_importadas", []);
+    const ofertasParaImportadas = selecionadas.map((item) => ({
+      nome: item.nome.trim(),
+      preco: item.preco,
+      unidade: null,
+      mercadoNome,
+    }));
+
+    // Evita duplicatas exatas de nome e preço
+    const mapaUnificado = new Map();
+    [...ofertasImportadasExistentes, ...ofertasParaImportadas].forEach((item) => {
+      const chave = `${item.nome.toLowerCase().trim()}_${Number(item.preco)}`;
+      if (!mapaUnificado.has(chave)) {
+        mapaUnificado.set(chave, item);
+      }
+    });
+
+    const ofertasAtualizadas = Array.from(mapaUnificado.values());
+    storageService.savePreference("ofertas_importadas", ofertasAtualizadas);
+
+    if (salvarStatusEl) {
+      salvarStatusEl.innerHTML = `✅ ${selecionadas.length} oferta(s) salva(s) com sucesso! Redirecionando...`;
+    }
+
+    setTimeout(() => {
+      if (router && typeof router.navigate === "function") {
+        router.navigate("/comparador");
+      } else {
+        window.location.hash = "#/comparador";
+      }
+    }, 1200);
   }
 }
