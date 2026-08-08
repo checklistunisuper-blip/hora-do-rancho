@@ -76,7 +76,7 @@ export function afterRender(router) {
       }
 
       if (statusEl) statusEl.textContent = "Identificando endereço...";
-      const endereco = await geolocationService.reverseGeocode(pos.latitude, pos.longitude);
+      const endereco = await geolocationService.reverseGeocode(pos.latitude ?? pos.lat, pos.longitude ?? pos.lng);
       
       if (storageService?.setPreference) {
         storageService.setPreference("localizacao", endereco);
@@ -125,14 +125,19 @@ export function afterRender(router) {
     btnBuscar.disabled = true;
 
     try {
-      // Garante o carregamento/reciclagem das ofertas atualizadas
+      // Executa o refresh se for uma Promise ou função síncrona
       if (marketsService?.refresh) {
-        await marketsService.refresh();
+        await Promise.resolve(marketsService.refresh());
       }
 
-      if (pos && pos.latitude && pos.longitude && marketsService?.findNearby) {
-        await marketsService.findNearby(pos.latitude, pos.longitude).catch(() => []);
+      const lat = pos?.latitude ?? pos?.lat;
+      const lng = pos?.longitude ?? pos?.lng;
+
+      if (lat && lng && marketsService?.findNearby) {
+        // Envolve em Promise.resolve para lidar com métodos síncronos e assíncronos sem estourar erro de .catch
+        await Promise.resolve(marketsService.findNearby(lat, lng));
       }
+      
       router.navigate("/mapa");
     } catch (error) {
       console.warn("Erro ao carregar ofertas:", error);
