@@ -57,6 +57,9 @@ export function parseOfertasDoTexto(textoOcr) {
   return resultados;
 }
 
+// Alias para compatibilidade com importar-ofertas.js
+export const parseOcrText = parseOfertasDoTexto;
+
 function capitalizar(texto) {
   return texto
     .toLowerCase()
