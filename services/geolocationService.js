@@ -7,7 +7,7 @@ import { APP_CONFIG } from "../config/config.js";
 
 export const geolocationService = {
   /**
-   * Pede permissão do GPS e retorna { latitude, longitude }.
+   * Pede permissão do GPS e retorna { latitude, longitude, accuracy }.
    */
   getCurrentPosition() {
     return new Promise((resolve, reject) => {
@@ -53,19 +53,26 @@ export const geolocationService = {
    */
   async reverseGeocode(latitude, longitude) {
     try {
+      if (latitude == null || longitude == null) {
+        return this.getFallbackLocation();
+      }
+
       const endpoint = APP_CONFIG?.nominatim?.endpoint || "https://nominatim.openstreetmap.org/reverse";
       const url = new URL(endpoint);
       url.searchParams.set("format", "jsonv2");
-      url.searchParams.set("lat", latitude);
-      url.searchParams.set("lon", longitude);
+      url.searchParams.set("lat", String(latitude));
+      url.searchParams.set("lon", String(longitude));
       url.searchParams.set("zoom", "18");
       url.searchParams.set("addressdetails", "1");
+      
+      // Se tiver email de contato configurado no APP_CONFIG, adiciona conforme recomendação do Nominatim
+      if (APP_CONFIG?.nominatim?.email) {
+        url.searchParams.set("email", APP_CONFIG.nominatim.email);
+      }
 
       const response = await fetch(url.toString(), {
         headers: {
           "Accept-Language": "pt-BR",
-          // O Nominatim exige User-Agent para evitar bloqueio HTTP 403
-          "User-Agent": "HoraDoRanchoApp/1.0",
         },
       }).catch(() => null);
 
@@ -78,6 +85,7 @@ export const geolocationService = {
 
       return {
         estado: addr.state || "",
+        municipality: addr.city || addr.town || addr.municipality || addr.village || "Sua Região",
         municipio: addr.city || addr.town || addr.municipality || addr.village || "Sua Região",
         bairro: addr.suburb || addr.neighbourhood || addr.city_district || addr.quarter || "",
         enderecoCompleto: data.display_name || "Endereço identificado",
@@ -104,6 +112,10 @@ export const geolocationService = {
    * Distância em km entre dois pontos (Fórmula de Haversine).
    */
   distanceKm(lat1, lon1, lat2, lon2) {
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+      return 0;
+    }
+
     const p1Lat = Number(lat1);
     const p1Lon = Number(lon1);
     const p2Lat = Number(lat2);
@@ -127,5 +139,4 @@ export const geolocationService = {
   },
 };
 
-// Exportação padrão para garantia de compatibilidade entre módulos
 export default geolocationService;
