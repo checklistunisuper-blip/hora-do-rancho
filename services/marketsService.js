@@ -1,31 +1,16 @@
-findNearby(userLat, userLng, maxDistanceKm = null) {
-  const lat = parseFloat(userLat);
-  const lng = parseFloat(userLng);
-
-  if (isNaN(lat) || isNaN(lng)) return [];
-
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) *
-        Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  let results = MARKETS_DATA.map((market) => ({
-    ...market,
-    distance: calculateDistance(lat, lng, market.lat, market.lng),
-  }));
-
-  if (maxDistanceKm) {
-    results = results.filter((m) => m.distance <= maxDistanceKm);
-  }
-
-  return results.sort((a, b) => a.distance - b.distance);
+/**
+ * Busca supermercados que contenham o termo de pesquisa no nome, endereço, rede ou cidade.
+ * @param {string} query Termo de busca
+ * @returns {Array}
+ */
+search(query) {
+  if (!query || !query.trim()) return MARKETS_DATA;
+  const term = query.toLowerCase().trim();
+  return MARKETS_DATA.filter(
+    m =>
+      m.name.toLowerCase().includes(term) ||
+      m.address.toLowerCase().includes(term) ||
+      m.network.toLowerCase().includes(term) ||
+      m.city.toLowerCase().includes(term)
+  );
 }
