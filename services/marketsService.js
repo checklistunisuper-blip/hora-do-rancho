@@ -1,3 +1,8 @@
+/**
+ * src/services/marketsService.js
+ * Serviço de mercados e ofertas do Hora do Rancho.
+ */
+
 import { APP_CONFIG } from "../config/config.js";
 
 let payloadCapturado = {
@@ -14,7 +19,7 @@ async function carregarOfertasMaisRecentes() {
       payloadCapturado = await response.json();
     }
   } catch (e) {
-    console.warn("Utilizando dados locais estáticos como fallback.");
+    console.warn("Utilizando dados estáticos como fallback.");
   }
 }
 
@@ -69,6 +74,7 @@ function formatMarketPayload(market, userLat = -30.1132, userLon = -51.3235) {
   };
 }
 
+// Exportação nomeada exigida por home.js
 export const marketsService = {
   async refresh() {
     await carregarOfertasMaisRecentes();
@@ -89,4 +95,5 @@ export const marketsService = {
   }
 };
 
+// Exportação padrão para compatibilidade
 export default marketsService;
