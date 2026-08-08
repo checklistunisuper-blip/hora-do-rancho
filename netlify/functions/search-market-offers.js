@@ -45,7 +45,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // Endpoint oficial do modelo Gemini 2.5 Flash
+    // Endpoint do modelo Gemini 2.5 Flash
     const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const localizacaoTexto = cidade ? `na cidade de ${cidade}${estado ? " - " + estado : ""}` : "no Brasil";
@@ -72,14 +72,13 @@ Sua resposta final deve conter EXCLUSIVAMENTE um objeto JSON válido no formato 
 }
 `;
 
-    // Configuração do payload ativando a ferramenta Google Search Grounding
+    // Configuração do payload com Google Search Grounding
     const requestPayload = {
       contents: [
         {
           parts: [{ text: promptText }],
         },
       ],
-      // Ativa o recurso de busca nativa do Google no Gemini
       tools: [
         {
           googleSearch: {},
@@ -107,13 +106,20 @@ Sua resposta final deve conter EXCLUSIVAMENTE um objeto JSON válido no formato 
     let resultado = { mercado: nomeMercado, ofertas: [], observacao: null };
 
     if (rawContent) {
-      // Limpa possíveis blocos de código ```json ... ``` retornados pelo modelo
-      const jsonLimpo = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
+      // Limpa blocos de código markdown
+      let jsonLimpo = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
+
+      // Extrai a estrutura do objeto JSON caso haja texto extra antes ou depois
+      const matchJson = jsonLimpo.match(/\{[\s\S]*\}/);
+      if (matchJson) {
+        jsonLimpo = matchJson[0];
+      }
+
       try {
         resultado = JSON.parse(jsonLimpo);
       } catch (parseError) {
-        console.warn("Falha ao parsear JSON direto, retornando resposta bruta:", rawContent);
-        resultado.observacao = "Resposta obtida, mas requer ajuste de formatação.";
+        console.warn("Falha ao parsear JSON direto do Gemini:", rawContent);
+        resultado.observacao = "Ofertas encontradas, mas houve ajuste na formatação dos dados.";
       }
     }
 
