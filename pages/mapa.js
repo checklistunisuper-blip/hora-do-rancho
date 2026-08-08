@@ -54,10 +54,10 @@ export async function afterRender(router) {
   const userLng = Number(pos.longitude ?? pos.lng);
 
   const radius = APP_CONFIG?.searchRadiusKm || 10;
-  
+
   let markets = [];
   try {
-    markets =markets = await Promise.resolve(marketsService.findNearby(userLat, userLng, radius));
+    markets = await Promise.resolve(marketsService.findNearby(userLat, userLng, radius));
   } catch (err) {
     console.error("Erro ao buscar mercados próximos:", err);
     markets = [];
