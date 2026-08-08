@@ -138,15 +138,27 @@ export async function afterRender(router) {
   // Escuta cliques para ver ofertas ou favoritar mercados
   if (listEl) {
     listEl.addEventListener("click", async (e) => {
-      const verOfertasBtn = e.target.closest('[data-action="ver-ofertas"]');
+      const verOfertasBtn = e.target.closest('[data-action="ver-ofertas"], .btn-ver-ofertas, a[href*="ofertas"]');
       if (verOfertasBtn) {
-        router.navigate(`/ofertas?mercadoId=${verOfertasBtn.dataset.marketId}`);
+        e.preventDefault();
+        // Obtém o id buscando nos atributos data ou na própria URL do href
+        const marketId = verOfertasBtn.dataset.marketId || verOfertasBtn.dataset.id || verOfertasBtn.dataset.refId;
+
+        if (marketId) {
+          // Passa tanto ?id= quanto ?mercadoId= para evitar divergência de parâmetros na rota
+          const targetUrl = `#/ofertas?id=${marketId}&mercadoId=${marketId}`;
+          if (router && typeof router.navigate === "function") {
+            router.navigate(`/ofertas?id=${marketId}&mercadoId=${marketId}`);
+          } else {
+            window.location.hash = targetUrl;
+          }
+        }
         return;
       }
 
       const favBtn = e.target.closest(".favorite-toggle");
       if (favBtn) {
-        const marketId = favBtn.dataset.refId;
+        const marketId = favBtn.dataset.refId || favBtn.dataset.id;
         const market = markets.find((m) => m.id === marketId);
         const isFav = await favoritesService.toggle("mercado", marketId, {
           nome: market?.nome,
