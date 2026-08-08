@@ -77,7 +77,13 @@ export async function afterRender(router, params) {
         ${comparativo.ofertas
           .map((o, index) => {
             const fonteTexto =
-              o.fonte === "scraped-feed" ? " · preço real" : o.fonte === "foto-manual" ? " · via foto" : "";
+              o.fonte === "scraped-feed"
+                ? " · preço real"
+                : o.fonte === "gemini-web"
+                ? " · encontrado na web"
+                : o.fonte === "foto-manual" || o.fonte === "foto-compartilhada"
+                ? " · via foto"
+                : "";
             return `
           <li class="comparador-lista__item ${o.id === comparativo.menorPreco.id ? "comparador-lista__item--recomendado" : ""}">
             <span class="comparador-lista__posicao">${index + 1}º</span>
