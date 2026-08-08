@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// Regras do Firestore para o Hora do Rancho.
+// Cole isso na aba "Regras" do Firestore Database no console do Firebase.
+//
+// Como o app não tem login de usuário (mantido simples de propósito), a
+// escrita é aberta a qualquer pessoa que use o app — mas com validação
+// de formato/tamanho pra barrar lixo óbvio. Não substitui um sistema de
+// autenticação real contra abuso malicioso deliberado.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /ofertasFoto/{ofertaId} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.keys().hasAll(['nome', 'preco', 'categoria', 'mercadoNome', 'criadoEm', 'expiraEm']) &&
+        request.resource.data.nome is string &&
+        request.resource.data.nome.size() > 0 &&
+        request.resource.data.nome.size() < 200 &&
+        request.resource.data.mercadoNome is string &&
+        request.resource.data.mercadoNome.size() > 0 &&
+        request.resource.data.mercadoNome.size() < 200 &&
+        request.resource.data.preco is number &&
+        request.resource.data.preco > 0 &&
+        request.resource.data.preco < 100000 &&
+        request.resource.data.categoria is string;
+
+      // Ninguém pode editar ou apagar oferta de outra pessoa pelo app —
+      // a limpeza é só automática, pela política de TTL (5 dias).
+      allow update, delete: if false;
+    }
+  }
+}
