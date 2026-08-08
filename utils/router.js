@@ -1,4 +1,3 @@
-
 /**
  * router.js — roteador SPA minimalista baseado em hash (#/rota).
  * Sem dependências externas, compatível com GitHub Pages.
@@ -38,9 +37,10 @@ export class Router {
     this.outlet.innerHTML = html;
     requestAnimationFrame(() => this.outlet.classList.remove("page-transition"));
 
-    // Só liga os eventos da página DEPOIS do HTML estar de fato no DOM.
+    // Liga os eventos da página após o HTML estar no DOM,
+    // passando 'this' (a instância do roteador) e 'params' para o afterRender
     if (result && typeof result.afterRender === "function") {
-      result.afterRender();
+      result.afterRender(this, params);
     }
 
     document.querySelectorAll(".bottom-nav__item").forEach((el) => {
