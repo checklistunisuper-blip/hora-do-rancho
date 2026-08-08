@@ -41,7 +41,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: "A chave GEMINI_API_KEY não está configurada." }),
+        body: JSON.stringify({ error: "A chave GEMINI_API_KEY não está configurada nas variáveis de ambiente." }),
       };
     }
 
@@ -56,7 +56,7 @@ Pesquise na web pelas ofertas e encartes mais recentes e vigentes do supermercad
 
 Instruções de resposta:
 Extraia até 15 produtos em promoção encontrados na web com nome, preço numérico e unidade de medida (ex: kg, un, pacote).
-Sua resposta final deve conter EXCLUSIVAMENTE um objeto JSON válido no formato abaixo, sem marcadores de markdown ou texto adicional fora do JSON:
+Sua resposta final deve ser EXCLUSIVAMENTE um JSON válido no seguinte formato:
 
 {
   "mercado": "${nomeMercado}",
@@ -65,10 +65,10 @@ Sua resposta final deve conter EXCLUSIVAMENTE um objeto JSON válido no formato 
     {
       "produto": "Nome do Produto",
       "preco": 0.00,
-      "unidade": "un / kg / cx"
+      "unidade": "un / kg / cx / pct"
     }
   ],
-  "observacao": "Período de validade ou fonte das ofertas encontradas"
+  "observacao": "Período de validade ou detalhes sobre a fonte das ofertas encontradas"
 }
 `;
 
@@ -86,6 +86,7 @@ Sua resposta final deve conter EXCLUSIVAMENTE um objeto JSON válido no formato 
       ],
       generationConfig: {
         temperature: 0.1,
+        responseMimeType: "application/json",
       },
     };
 
@@ -101,25 +102,53 @@ Sua resposta final deve conter EXCLUSIVAMENTE um objeto JSON válido no formato 
     }
 
     const responseData = await response.json();
-    const rawContent = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = responseData.candidates?.[0];
+    const rawContent = candidate?.content?.parts?.[0]?.text;
 
-    let resultado = { mercado: nomeMercado, ofertas: [], observacao: null };
+    // Captura links de fontes do Grounding
+    const groundingSources = candidate?.groundingMetadata?.groundingChunks?.map((chunk) => ({
+      title: chunk.web?.title || "",
+      uri: chunk.web?.uri || "",
+    })).filter(s => s.uri) || [];
+
+    let resultado = { mercado: nomeMercado, ofertas: [], observacao: null, fontes: groundingSources };
 
     if (rawContent) {
-      // Limpa blocos de código markdown
+      // Limpa marcadores de bloco de código markdown
       let jsonLimpo = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
 
-      // Extrai a estrutura do objeto JSON caso haja texto extra antes ou depois
       const matchJson = jsonLimpo.match(/\{[\s\S]*\}/);
       if (matchJson) {
         jsonLimpo = matchJson[0];
       }
 
       try {
-        resultado = JSON.parse(jsonLimpo);
+        const parsed = JSON.parse(jsonLimpo);
+
+        // Sanitização e normalização das ofertas
+        const ofertasSanitizadas = Array.isArray(parsed.ofertas)
+          ? parsed.ofertas
+              .map((item) => {
+                let precoNum = typeof item.preco === "number" ? item.preco : parseFloat(String(item.preco).replace("R$", "").replace(",", ".").trim());
+                return {
+                  produto: String(item.produto || item.nome || "").trim(),
+                  preco: isNaN(precoNum) ? 0 : Number(precoNum.toFixed(2)),
+                  unidade: String(item.unidade || "un").trim(),
+                };
+              })
+              .filter((item) => item.produto && item.preco > 0)
+          : [];
+
+        resultado = {
+          mercado: parsed.mercado || nomeMercado,
+          cidade: parsed.cidade || cidade || "",
+          ofertas: ofertasSanitizadas,
+          observacao: parsed.observacao || null,
+          fontes: groundingSources,
+        };
       } catch (parseError) {
-        console.warn("Falha ao parsear JSON direto do Gemini:", rawContent);
-        resultado.observacao = "Ofertas encontradas, mas houve ajuste na formatação dos dados.";
+        console.warn("Falha ao parsear JSON retornado pelo Gemini:", rawContent);
+        resultado.observacao = "A pesquisa foi concluída, mas houve erro na estrutura do resultado.";
       }
     }
 
