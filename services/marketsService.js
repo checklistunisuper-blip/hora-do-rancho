@@ -9,12 +9,18 @@ let payloadCapturado = {
   ofertasPorMercado: {}
 };
 
-// Tenta carregar dados raspados via GitHub Actions / Robô Gemini
+// Tenta carregar dados raspados via GitHub Actions / Robô
 async function carregarOfertasCapturadas() {
   try {
     const cacheBuster = Date.now();
-    // Usa caminho relativo para funcionar em qualquer subpasta/GitHub Pages
-    const response = await fetch(`./data/ofertas-capturadas.json?t=${cacheBuster}`);
+    // Tenta primeiro pelo caminho relativo padrão do projeto
+    let response = await fetch(`./data/ofertas-capturadas.json?t=${cacheBuster}`);
+    
+    // Se falhar no caminho relativo (ex: subpastas do GH Pages), tenta a raiz da publicação
+    if (!response.ok) {
+      response = await fetch(`data/ofertas-capturadas.json?t=${cacheBuster}`);
+    }
+
     if (response.ok) {
       const data = await response.json();
       if (data && data.ofertasPorMercado) {
@@ -22,11 +28,11 @@ async function carregarOfertasCapturadas() {
       }
     }
   } catch (e) {
-    console.warn("Utilizando ofertas estáticas de fallback.");
+    console.warn("Serviço de ofertas dinâmicas indisponível. Verifique o arquivo JSON em /data.");
   }
 }
 
-// Lista de mercados do RS
+// Lista de mercados do RS com IDs e dados oficiais
 const ESTABELECIMENTOS_RS = [
   {
     id: "stok-canoas",
@@ -38,11 +44,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -29.9320,
     lon: -51.1710,
     logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true",
-    ofertas: [
-      { id: "o1", produto: "Arroz Parboilizado 5kg", preco: "R$ 19,90", tag: "Oferta" },
-      { id: "o2", produto: "Feijão Preto 1kg", preco: "R$ 7,89", tag: "Destaque" },
-      { id: "o3", produto: "Óleo de Soja 900ml", preco: "R$ 5,49", tag: "Preço Baixo" }
-    ]
+    ofertas: [] // Sem produtos genéricos falsos
   },
   {
     id: "via-atacadista-canoas",
@@ -54,10 +56,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -29.9140,
     lon: -51.1890,
     logoUrl: "https://ui-avatars.com/api/?name=Via+Atacadista&background=e65100&color=fff&bold=true",
-    ofertas: [
-      { id: "o4", produto: "Coxão Mole Bovino kg", preco: "R$ 31,90", tag: "Açougue" },
-      { id: "o5", produto: "Cerveja Pilsen Latão 473ml", preco: "R$ 3,49", tag: "Bebidas" }
-    ]
+    ofertas: []
   },
   {
     id: "fort-canoas",
@@ -69,10 +68,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -29.9075,
     lon: -51.1680,
     logoUrl: "https://ui-avatars.com/api/?name=Fort+Atacadista&background=0277bd&color=fff&bold=true",
-    ofertas: [
-      { id: "o6", produto: "Lava Roupas Líquido 3L", preco: "R$ 24,90", tag: "Atacado" },
-      { id: "o7", produto: "Papel Higiênico Folha Dupla 12un", preco: "R$ 13,80", tag: "Promoção" }
-    ]
+    ofertas: []
   },
   {
     id: "sams-club-poa",
@@ -84,9 +80,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -29.9990,
     lon: -51.1480,
     logoUrl: "https://ui-avatars.com/api/?name=Sams+Club&background=0d47a1&color=fff&bold=true",
-    ofertas: [
-      { id: "o8", produto: "Pneu 175/65 R14 Aro 14", preco: "R$ 289,90", tag: "Exclusivo Sócios" }
-    ]
+    ofertas: []
   },
   {
     id: "atacadao-sertorio",
@@ -98,9 +92,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -29.9985,
     lon: -51.1390,
     logoUrl: "https://ui-avatars.com/api/?name=Atacadao&background=f57c00&color=fff&bold=true",
-    ofertas: [
-      { id: "o9", produto: "Farinha de Trigo Tipo 1 5kg", preco: "R$ 14,50", tag: "Atacado" }
-    ]
+    ofertas: []
   },
   {
     id: "zaffari-centro",
@@ -112,9 +104,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.0346,
     lon: -51.2290,
     logoUrl: "https://ui-avatars.com/api/?name=Zaffari&background=821019&color=fff&bold=true",
-    ofertas: [
-      { id: "o10", produto: "Queijo Mussarela Fatiado 400g", preco: "R$ 16,90", tag: "Oferta" }
-    ]
+    ofertas: []
   },
   {
     id: "zaffari-bourbon-ipiranga",
@@ -126,9 +116,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.0545,
     lon: -51.1830,
     logoUrl: "https://ui-avatars.com/api/?name=Zaffari&background=821019&color=fff&bold=true",
-    ofertas: [
-      { id: "o11", produto: "Vinho Red 750ml", preco: "R$ 29,90", tag: "Especial" }
-    ]
+    ofertas: []
   },
   {
     id: "carrefour-pasqualini",
@@ -140,9 +128,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.0610,
     lon: -51.1710,
     logoUrl: "https://ui-avatars.com/api/?name=Carrefour&background=1565c0&color=fff&bold=true",
-    ofertas: [
-      { id: "o12", produto: "Azeite de Oliva Extra Virgem 500ml", preco: "R$ 32,90", tag: "Oferta" }
-    ]
+    ofertas: []
   },
   {
     id: "stock-center-gravatai",
@@ -154,9 +140,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -29.9410,
     lon: -51.0110,
     logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true",
-    ofertas: [
-      { id: "o13", produto: "Margarina com Sal 500g", preco: "R$ 5,99", tag: "Oferta" }
-    ]
+    ofertas: []
   },
   {
     id: "desco-zona-sul",
@@ -168,9 +152,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.1060,
     lon: -51.2280,
     logoUrl: "https://ui-avatars.com/api/?name=Desco&background=2e7d32&color=fff&bold=true",
-    ofertas: [
-      { id: "o14", produto: "Cerveja Heineken Long Neck 330ml", preco: "R$ 5,99", tag: "Super Oferta" }
-    ]
+    ofertas: []
   },
   {
     id: "guarani-viamao",
@@ -182,9 +164,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.0810,
     lon: -51.0250,
     logoUrl: "https://ui-avatars.com/api/?name=Guarani&background=c62828&color=fff&bold=true",
-    ofertas: [
-      { id: "o15", produto: "Massa para Lasanha 500g", preco: "R$ 4,89", tag: "Massa" }
-    ]
+    ofertas: []
   },
   {
     id: "nacional-guaiba",
@@ -196,9 +176,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.1115,
     lon: -51.3210,
     logoUrl: "https://ui-avatars.com/api/?name=Nacional&background=d32f2f&color=fff&bold=true",
-    ofertas: [
-      { id: "o16", produto: "Detergente Líquido 500ml", preco: "R$ 2,19", tag: "Limpeza" }
-    ]
+    ofertas: []
   },
   {
     id: "asun-guaiba",
@@ -210,9 +188,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.1132,
     lon: -51.3235,
     logoUrl: "https://ui-avatars.com/api/?name=Asun&background=1b7a3d&color=fff&bold=true",
-    ofertas: [
-      { id: "o17", produto: "Costela Bovina kg", preco: "R$ 26,90", tag: "Churrasco" }
-    ]
+    ofertas: []
   },
   {
     id: "stok-guaiba",
@@ -224,9 +200,7 @@ const ESTABELECIMENTOS_RS = [
     lat: -30.1350,
     lon: -51.3320,
     logoUrl: "https://ui-avatars.com/api/?name=Stok+Center&background=f57c00&color=fff&bold=true",
-    ofertas: [
-      { id: "o18", produto: "Café Torrado e Moído 500g", preco: "R$ 14,90", tag: "Oferta do Dia" }
-    ]
+    ofertas: []
   }
 ];
 
@@ -250,9 +224,10 @@ function formatMarketPayload(market, userLat = -30.1132, userLon = -51.3235) {
   const distMeters = Math.round(distNum * 1000);
   const distText = distKm < 1 ? `${distMeters} m` : `${distKm} km`;
 
+  // Tenta sincronizar a busca de ofertas dinâmicas no JSON raspado pelo robô
   const ofertasDinamicas = payloadCapturado.ofertasPorMercado?.[market.id];
-  const ofertasList = (ofertasDinamicas && ofertasDinamicas.length > 0) 
-    ? ofertasDinamicas 
+  const ofertasList = (ofertasDinamicas && ofertasDinamicas.length > 0)
+    ? ofertasDinamicas
     : (market.ofertas || []);
 
   const totalOfertas = ofertasList.length;
@@ -265,7 +240,7 @@ function formatMarketPayload(market, userLat = -30.1132, userLon = -51.3235) {
     distanciaFormatada: distText,
     dataAtualizacao: payloadCapturado.dataFormatada || "Recente",
     
-    // TODAS AS VARIÁVEIS DE COMPATIBILIDADE PARA A TELA MAPA:
+    // VARIÁVEIS DE INTEGRAÇÃO COM A INTERFACE:
     ofertas: ofertasList,
     offers: ofertasList,
     ofertasCount: totalOfertas,
@@ -283,7 +258,18 @@ export const marketsService = {
 
   async getById(id, userLat = -30.1132, userLon = -51.3235) {
     await carregarOfertasCapturadas();
-    const market = ESTABELECIMENTOS_RS.find((m) => m.id === id) || ESTABELECIMENTOS_RS[0];
+    
+    // Normalização de ID para corresponder a formatos parecidos
+    const targetId = String(id || "").toLowerCase().trim();
+    const market = ESTABELECIMENTOS_RS.find(
+      (m) => m.id.toLowerCase() === targetId || m.id.replace(/-/g, "") === targetId.replace(/-/g, "")
+    );
+
+    if (!market) {
+      console.warn(`Mercado com ID "${id}" não foi encontrado na base estática.`);
+      return null;
+    }
+
     return formatMarketPayload(market, userLat, userLon);
   },
 
