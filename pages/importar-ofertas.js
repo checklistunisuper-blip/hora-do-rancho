@@ -1,236 +1,171 @@
-// Caminhos corrigidos de acordo com a árvore de diretórios do repositório
-import { storageService } from "../services/offerProviders/storageService.js";
-import { parseOcrText } from "../utils/ocrParser.js";
-import { processarTextoEncarte } from "../src/utils/encarteParser.js";
+import { APP_CONFIG } from "../config/config.js";
+import { storageService } from "../services/storageService.js";
+import { parseEncarteTexto } from "../src/utils/encarteParser.js";
+import { formatarMoeda } from "../utils/format.js";
 
-/**
- * Renderiza o HTML da página de importação
- */
-export async function render(params) {
+export async function render() {
   return `
-    <div class="page-transition">
-      <div class="page-header">
-        <h1>Importar Ofertas</h1>
-        <p class="muted">Anexe um encarte em PDF ou cole o link do supermercado para extrair produtos automaticamente.</p>
+    <section class="screen importar-screen">
+      <header class="page-header">
+        <h1>Importar Ofertas por Texto</h1>
+        <p class="muted">
+          Cole aqui a lista ou encarte em texto recebido por WhatsApp/site do mercado.
+          O sistema identifica produtos e preços para alimentar o comparador.
+        </p>
+      </header>
+
+      <div class="card">
+        <label for="importar-mercado-nome">Nome do mercado</label>
+        <input type="text" id="importar-mercado-nome" placeholder="Ex: Asun Cavalhada, Unisuper Centro..." required />
+
+        <label for="importar-texto">Cole o texto do encarte aqui</label>
+        <textarea id="importar-texto" rows="8" placeholder="Ex: Arroz Tio João 5kg R$ 19,90&#10;Feijão Carioca 1kg R$ 7,49"></textarea>
+
+        <button id="btn-processar-texto" class="btn btn--primary btn--block btn--large" style="margin-top: 1rem;">
+          ⚡ PROCESSAR OFERTAS
+        </button>
       </div>
 
-      <div class="painel-ofertas">
-        <h2>Escolha o método de importação</h2>
-
-        <!-- Opção 1: Arquivo PDF -->
-        <div class="card-opcao">
-          <h3>📄 Anexar PDF do Encarte</h3>
-          <p>Envie o folheto do supermercado em formato PDF.</p>
-          <input type="file" id="pdf-file-input" accept="application/pdf" />
-        </div>
-
-        <div class="divisor-ou">OU</div>
-
-        <!-- Opção 2: Link de Supermercado -->
-        <div class="card-opcao">
-          <h3>🔗 Link do Encarte / Ofertas</h3>
-          <p>Cole a URL da página de promoções do mercado.</p>
-          <div class="input-grupo">
-            <input type="url" id="link-oferta-input" placeholder="https://supermercado.com.br/ofertas" />
-            <button id="btn-importar-link" class="btn btn--primary">Processar</button>
-          </div>
-        </div>
-
-        <!-- Feedback de Carregamento -->
-        <div id="status-importacao" class="status-container" style="display: none;">
-          <div class="spinner"></div>
-          <span id="status-texto">Processando ofertas...</span>
-        </div>
-      </div>
-
-      <!-- Área de Exibição dos Produtos Extraídos -->
-      <div id="resultado-importacao" class="resultado-container"></div>
-    </div>
+      <div id="importar-resultados-container"></div>
+    </section>
   `;
 }
 
-/**
- * Configura os ouvintes de eventos da página após a renderização no DOM
- */
-export function afterRender(router, params) {
-  const pdfInput = document.getElementById("pdf-file-input");
-  const btnLink = document.getElementById("btn-importar-link");
-  const linkInput = document.getElementById("link-oferta-input");
+export async function afterRender(router) {
+  const btnProcessar = document.getElementById("btn-processar-texto");
+  const textoInput = document.getElementById("importar-texto");
+  const mercadoInput = document.getElementById("importar-mercado-nome");
+  const resultadosContainer = document.getElementById("importar-resultados-container");
 
-  // Evento 1: Leitura de arquivo PDF
-  pdfInput?.addEventListener("change", async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  let ofertasProcessadas = [];
 
-    if (file.type !== "application/pdf") {
-      alert("Por favor, selecione um arquivo no formato PDF.");
+  btnProcessar.addEventListener("click", () => {
+    const texto = textoInput.value.trim();
+    const mercadoNome = mercadoInput.value.trim();
+
+    if (!mercadoNome) {
+      alert("Por favor, preencha o nome do mercado.");
+      mercadoInput.focus();
       return;
     }
 
-    mostrarStatus(true, "Lendo páginas do PDF...");
+    if (!texto) {
+      alert("Cole o texto do encarte antes de processar.");
+      textoInput.focus();
+      return;
+    }
 
-    try {
-      // 1. Tenta extrair o texto vetorial nativo do PDF
-      let textoBruto = await extrairTextoComPdfJs(file);
-      let produtosIdentificados = processarTextoEncarte(textoBruto);
+    const encontradas = parseEncarteTexto(texto);
 
-      // 2. Fallback: Se não encontrou texto (PDF feito de imagens/scans), executa OCR com Tesseract
-      if (!produtosIdentificados || produtosIdentificados.length === 0) {
-        mostrarStatus(true, "PDF sem camada de texto. Executando OCR (visão computacional)...");
-        textoBruto = await extrairTextoViaOcr(file);
-        
-        // Usa o ocrParser se disponível, ou o encarteParser como fallback
-        produtosIdentificados = typeof parseOcrText === "function" 
-          ? parseOcrText(textoBruto) 
-          : processarTextoEncarte(textoBruto);
+    let idCounter = 0;
+    ofertasProcessadas = encontradas.map((item) => ({
+      id: `txt-${Date.now()}-${idCounter++}`,
+      nome: item.nome,
+      preco: item.preco,
+      unidade: item.unidade || null,
+      incluir: true,
+    }));
+
+    renderResultados(mercadoNome);
+  });
+
+  function renderResultados(mercadoNome) {
+    if (!ofertasProcessadas.length) {
+      resultadosContainer.innerHTML = `
+        <div class="card" style="margin-top: 1rem;">
+          <p class="muted">Nenhuma oferta com preço foi identificada no texto colado.</p>
+        </div>
+      `;
+      return;
+    }
+
+    resultadosContainer.innerHTML = `
+      <div class="card" style="margin-top: 1rem;">
+        <h3 class="section-title">Confira os itens encontrados (${ofertasProcessadas.length})</h3>
+        <ul class="ocr-lista">
+          ${ofertasProcessadas
+            .map(
+              (item) => `
+            <li class="ocr-lista__item" data-id="${item.id}">
+              <input type="checkbox" class="ocr-item-check" ${item.incluir ? "checked" : ""} />
+              <div class="ocr-lista__campos">
+                <input type="text" class="ocr-item-nome" value="${item.nome}" />
+                <div class="ocr-lista__linha2">
+                  <input type="number" class="ocr-item-preco" step="0.01" min="0" value="${item.preco}" />
+                </div>
+              </div>
+              <button class="icon-btn ocr-item-remover" aria-label="Remover">🗑️</button>
+            </li>`
+            )
+            .join("")}
+        </ul>
+        <button id="btn-salvar-texto-ofertas" class="btn btn--primary btn--block btn--large" style="margin-top: 1rem;">
+          💾 SALVAR OFERTAS
+        </button>
+        <div id="salvar-status" class="status-message" role="status"></div>
+      </div>
+    `;
+
+    resultadosContainer.querySelectorAll(".ocr-lista__item").forEach((li) => {
+      const id = li.dataset.id;
+      const item = ofertasProcessadas.find((o) => o.id === id);
+
+      li.querySelector(".ocr-item-check").addEventListener("change", (e) => {
+        item.incluir = e.target.checked;
+      });
+      li.querySelector(".ocr-item-nome").addEventListener("input", (e) => {
+        item.nome = e.target.value;
+      });
+      li.querySelector(".ocr-item-preco").addEventListener("input", (e) => {
+        item.preco = Number(e.target.value);
+      });
+      li.querySelector(".ocr-item-remover").addEventListener("click", () => {
+        ofertasProcessadas = ofertasProcessadas.filter((o) => o.id !== id);
+        renderResultados(mercadoNome);
+      });
+    });
+
+    document.getElementById("btn-salvar-texto-ofertas").addEventListener("click", () => salvarOfertas(mercadoNome));
+  }
+
+  async function salvarOfertas(mercadoNome) {
+    const selecionadas = ofertasProcessadas.filter((o) => o.incluir && o.nome.trim() && o.preco > 0);
+    const salvarStatusEl = document.getElementById("salvar-status");
+
+    if (!selecionadas.length) {
+      if (salvarStatusEl) salvarStatusEl.textContent = "Nenhuma oferta válida marcada para salvar.";
+      return;
+    }
+
+    const ofertasExistentes = storageService.getPreference("ofertas_importadas", []);
+    const novasOfertas = selecionadas.map((item) => ({
+      nome: item.nome.trim(),
+      preco: item.preco,
+      unidade: item.unidade,
+      mercadoNome,
+    }));
+
+    const mapaUnificado = new Map();
+    [...ofertasExistentes, ...novasOfertas].forEach((item) => {
+      const chave = `${item.nome.toLowerCase().trim()}_${Number(item.preco)}`;
+      if (!mapaUnificado.has(chave)) {
+        mapaUnificado.set(chave, item);
       }
+    });
 
-      // 3. Renderiza os resultados na tela
-      renderizarProdutos(produtosIdentificados, router);
-    } catch (err) {
-      console.error("Erro no processamento do PDF:", err);
-      alert("Não foi possível ler o PDF. Verifique se o arquivo não está protegido por senha.");
-    } finally {
-      mostrarStatus(false);
-    }
-  });
+    const ofertasAtualizadas = Array.from(mapaUnificado.values());
+    storageService.savePreference("ofertas_importadas", ofertasAtualizadas);
 
-  // Evento 2: Processamento de Link
-  btnLink?.addEventListener("click", async () => {
-    const url = linkInput?.value.trim();
-    if (!url) {
-      alert("Por favor, insira uma URL válida.");
-      return;
+    if (salvarStatusEl) {
+      salvarStatusEl.innerHTML = `✅ ${selecionadas.length} oferta(s) salva(s) com sucesso! Redirecionando...`;
     }
 
-    mostrarStatus(true, "Buscando ofertas do link...");
-    try {
-      alert("Recurso de leitura por link em desenvolvimento.");
-    } finally {
-      mostrarStatus(false);
-    }
-  });
-}
-
-/**
- * Extrai texto vetorial do PDF via PDF.js
- */
-async function extrairTextoComPdfJs(file) {
-  if (!window.pdfjsLib) {
-    throw new Error("A biblioteca PDF.js não está carregada no index.html.");
+    setTimeout(() => {
+      if (router && typeof router.navigate === "function") {
+        router.navigate("/comparador");
+      } else {
+        window.location.hash = "#/comparador";
+      }
+    }, 1200);
   }
-
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-  const arrayBuffer = await file.arrayBuffer();
-  const pdfDocument = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let textoCompleto = "";
-
-  for (let i = 1; i <= pdfDocument.numPages; i++) {
-    const page = await pdfDocument.getPage(i);
-    const content = await page.getTextContent();
-    const textoPagina = content.items.map((item) => item.str).join(" ");
-    textoCompleto += `\n${textoPagina}`;
-  }
-
-  return textoCompleto;
-}
-
-/**
- * Converte páginas do PDF em Canvas e executa OCR com Tesseract.js (para PDFs escaneados)
- */
-async function extrairTextoViaOcr(file) {
-  if (!window.Tesseract) {
-    throw new Error("A biblioteca Tesseract.js não está carregada no index.html.");
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const pdfDocument = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let textoOcrCompleto = "";
-
-  // Processa as primeiras páginas (limitado a 3 para manter a performance)
-  const maxPaginas = Math.min(pdfDocument.numPages, 3);
-
-  for (let i = 1; i <= maxPaginas; i++) {
-    mostrarStatus(true, `Executando OCR na página ${i} de ${maxPaginas}...`);
-    const page = await pdfDocument.getPage(i);
-    
-    // Renderiza a página do PDF em um Canvas
-    const viewport = page.getViewport({ scale: 1.5 });
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-
-    await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-    // Executa o OCR na imagem gerada no Canvas em Português
-    const { data: { text } } = await window.Tesseract.recognize(canvas, "por");
-    textoOcrCompleto += `\n${text}`;
-  }
-
-  return textoOcrCompleto;
-}
-
-/**
- * Exibe/Oculta o indicador de progresso
- */
-function mostrarStatus(visivel, mensagem = "") {
-  const statusEl = document.getElementById("status-importacao");
-  const textoEl = document.getElementById("status-texto");
-  if (!statusEl) return;
-
-  if (mensagem && textoEl) textoEl.textContent = mensagem;
-  statusEl.style.display = visivel ? "flex" : "none";
-}
-
-/**
- * Monta a exibição dos produtos e salva para o comparador
- */
-function renderizarProdutos(produtos, router) {
-  const container = document.getElementById("resultado-importacao");
-  if (!container) return;
-
-  if (!produtos || produtos.length === 0) {
-    container.innerHTML = `
-      <div class="aviso-vazio">
-        Nenhum produto foi identificado neste encarte.<br>
-        <small class="muted">Tente anexar um arquivo com melhor qualidade de imagem ou texto legível.</small>
-      </div>`;
-    return;
-  }
-
-  const htmlProdutos = produtos
-    .map(
-      (prod) => `
-    <div class="card-produto-oferta" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color, #eee);">
-      <div>
-        <strong>${prod.nome}</strong>
-        ${prod.unidade ? `<br><small class="muted">Embalagem: ${prod.unidade}</small>` : ""}
-      </div>
-      <div style="font-weight: bold; color: var(--primary-color, #2e7d32); font-size: 1.1rem;">
-        R$ ${Number(prod.preco).toFixed(2).replace(".", ",")}
-      </div>
-    </div>
-  `
-    )
-    .join("");
-
-  container.innerHTML = `
-    <div style="margin-top: 20px;">
-      <h3>Ofertas Identificadas (${produtos.length})</h3>
-      <div class="lista-ofertas-scroll" style="max-height: 350px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #eee; border-radius: 8px;">
-        ${htmlProdutos}
-      </div>
-      <button id="btn-salvar-ofertas" class="btn btn--primary btn--block" style="width: 100%; padding: 12px; font-weight: bold;">
-        Adicionar Ofertas ao Comparador
-      </button>
-    </div>
-  `;
-
-  document.getElementById("btn-salvar-ofertas")?.addEventListener("click", () => {
-    storageService.savePreference("ofertas_importadas", produtos);
-    router.navigate("/comparador");
-  });
 }
