@@ -1,5 +1,5 @@
-// Ajustado para refletir a localização real dos arquivos no projeto
-import { storageService } from "../services/storageService.js";
+// Caminhos corrigidos de acordo com a árvore de diretórios do repositório
+import { storageService } from "../services/offerProviders/storageService.js";
 import { parseOcrText } from "../utils/ocrParser.js";
 import { processarTextoEncarte } from "../src/utils/encarteParser.js";
 
