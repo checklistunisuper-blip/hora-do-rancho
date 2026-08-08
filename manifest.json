@@ -1,9 +1,9 @@
 {
-  "id": "/hora-do-rancho/",
+  "id": "/",
   "name": "Hora do Rancho — Ofertas e Encarte",
   "short_name": "Hora do Rancho",
   "description": "Encontre as melhores ofertas de supermercados e atacadistas no RS.",
-  "start_url": "/hora-do-rancho/#/",
+  "start_url": "/#/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1b7a3d",
