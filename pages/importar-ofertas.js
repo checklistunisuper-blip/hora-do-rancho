@@ -1,6 +1,7 @@
-import { storageService } from "../src/services/storageService.js";
+// Ajustado para refletir a localização real dos arquivos no projeto
+import { storageService } from "../services/storageService.js";
+import { parseOcrText } from "../utils/ocrParser.js";
 import { processarTextoEncarte } from "../src/utils/encarteParser.js";
-import { parseOcrText } from "../src/utils/ocrParser.js";
 
 /**
  * Renderiza o HTML da página de importação
