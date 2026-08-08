@@ -71,20 +71,23 @@ export function afterRender(router) {
 
     try {
       const pos = await geolocationService.getCurrentPosition();
+      const lat = pos?.latitude ?? pos?.lat;
+      const lng = pos?.longitude ?? pos?.lng;
+
       if (storageService?.setPreference) {
-        storageService.setPreference("posicao", pos);
+        storageService.setPreference("posicao", { latitude: lat, longitude: lng });
       }
 
       if (statusEl) statusEl.textContent = "Identificando endereço...";
-      const endereco = await geolocationService.reverseGeocode(pos.latitude ?? pos.lat, pos.longitude ?? pos.lng);
+      const endereco = await geolocationService.reverseGeocode(lat, lng);
       
       if (storageService?.setPreference) {
         storageService.setPreference("localizacao", endereco);
       }
 
       if (locationDisplay) {
-        const textoBairro = endereco.bairro ? `${endereco.bairro}, ` : "";
-        locationDisplay.innerHTML = `<p>📍 ${textoBairro}${endereco.municipio || "Localização atual"} - ${endereco.estado || ""}</p>`;
+        const textoBairro = endereco?.bairro ? `${endereco.bairro}, ` : "";
+        locationDisplay.innerHTML = `<p>📍 ${textoBairro}${endereco?.municipio || "Localização atual"} - ${endereco?.estado || ""}</p>`;
       }
 
       if (statusEl) statusEl.textContent = "Localização detectada com sucesso!";
@@ -99,7 +102,7 @@ export function afterRender(router) {
   });
 
   // 2. Preenchimento Manual
-  formManual?.addEventListener("submit", (e) => {
+  formManual?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(formManual);
     const dados = Object.fromEntries(formData);
@@ -111,6 +114,19 @@ export function afterRender(router) {
     if (locationDisplay) {
       const textoBairro = dados.bairro ? `${dados.bairro}, ` : "";
       locationDisplay.innerHTML = `<p>📍 ${textoBairro}${dados.municipio} - ${dados.estado}</p>`;
+    }
+
+    // Tenta obter as coordenadas (latitude/longitude) a partir do texto informado
+    if (geolocationService?.geocodeAddress) {
+      try {
+        const query = `${dados.bairro ? dados.bairro + ", " : ""}${dados.municipio}, ${dados.estado}`;
+        const coords = await geolocationService.geocodeAddress(query);
+        if (coords && storageService?.setPreference) {
+          storageService.setPreference("posicao", coords);
+        }
+      } catch (err) {
+        console.warn("Não foi possível geocodificar o endereço manual:", err);
+      }
     }
 
     if (statusEl) statusEl.textContent = "Localização manual salva com sucesso!";
@@ -125,7 +141,6 @@ export function afterRender(router) {
     btnBuscar.disabled = true;
 
     try {
-      // Executa o refresh se for uma Promise ou função síncrona
       if (marketsService?.refresh) {
         await Promise.resolve(marketsService.refresh());
       }
@@ -134,14 +149,21 @@ export function afterRender(router) {
       const lng = pos?.longitude ?? pos?.lng;
 
       if (lat && lng && marketsService?.findNearby) {
-        // Envolve em Promise.resolve para lidar com métodos síncronos e assíncronos sem estourar erro de .catch
         await Promise.resolve(marketsService.findNearby(lat, lng));
       }
       
-      router.navigate("/mapa");
+      if (router && typeof router.navigate === "function") {
+        router.navigate("/mapa");
+      } else {
+        window.location.hash = "#/mapa";
+      }
     } catch (error) {
       console.warn("Erro ao carregar ofertas:", error);
-      router.navigate("/mapa");
+      if (router && typeof router.navigate === "function") {
+        router.navigate("/mapa");
+      } else {
+        window.location.hash = "#/mapa";
+      }
     } finally {
       if (btnBuscar) btnBuscar.disabled = false;
     }
