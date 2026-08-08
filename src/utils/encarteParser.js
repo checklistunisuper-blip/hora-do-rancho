@@ -1,140 +1,123 @@
 /**
  * src/utils/encarteParser.js
- * Parser heurístico para extração precisa de ofertas em textos de encartes.
+ * Utilitário de parsing para encartes/folhetos em PDF ou Texto OCR.
  */
 
-// Palavras-chave a serem ignoradas na busca por nomes de produtos
-const BLACKLIST_PALAVRAS = [
-  "oferta", "ofertas", "validade", "valido", "válida", "válido", "imagem",
-  "ilustrativa", "meramente", "cnpj", "sac", "loja", "supermercado", "condições",
-  "pagamento", "cartão", "desconto", "clube", "unidade", "unidades", "kg", "litro",
-  "confira", "estoque", "encarte", "folheto", "página", "pag"
-];
-
-// Expressões regulares para detecção de unidades, pacotes e preços
-const REGEX_PRECO = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*[\.,]\d{2})/i;
-const REGEX_UNIDADE = /\b(\d+(?:[\.,]\d+)?\s*(?:kg|g|l|ml|un|und|pack|cx|lata|saco|pct))\b/i;
-const REGEX_DATAS_OU_CNPJ = /\b(\d{2}\/\d{2}|\d{2}\.\d{3}\.\d{3}|\d{14})\b/;
+// Configura o worker do PDF.js automaticamente via CDN se a lib estiver presente no global
+if (typeof window !== "undefined" && window.pdfjsLib && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
 
 /**
- * Processa o texto bruto e retorna uma lista estruturada de produtos
- * @param {string} textoBruto 
- * @returns {Array<{nome: string, preco: number, unidade: string|null}>}
+ * Expressões regulares para captura de nomes, preços e unidades
  */
-export function processarTextoEncarte(textoBruto) {
-  if (!textoBruto) return [];
+const PRECO_REGEX = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*[\,\.]\d{2})/i;
+const UNIDADE_REGEX = /\b(kg|g|l|ml|un|unid|und|cx|pct|pacote|lata|garrafa)\b/i;
 
-  // 1. Normalização do texto e separação por linhas limpas
-  const linhas = textoBruto
+/**
+ * Converte um arquivo PDF enviado pelo usuário em texto extraído de todas as páginas.
+ * @param {File|ArrayBuffer} pdfSource 
+ * @returns {Promise<string>}
+ */
+export async function extrairTextoDePDF(pdfSource) {
+  if (!window.pdfjsLib) {
+    throw new Error("A biblioteca PDF.js não foi carregada no projeto.");
+  }
+
+  let arrayBuffer;
+  if (pdfSource instanceof File) {
+    arrayBuffer = await pdfSource.arrayBuffer();
+  } else {
+    arrayBuffer = pdfSource;
+  }
+
+  const pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let textoCompleto = "";
+
+  for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+    const page = await pdfDoc.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const textoPagina = textContent.items.map((item) => item.str).join(" ");
+    textoCompleto += ` ${textoPagina}\n`;
+  }
+
+  return textoCompleto;
+}
+
+/**
+ * Processa texto extraído (seja de PDF ou OCR) e retorna uma lista estruturada de ofertas.
+ * @param {string} texto 
+ * @returns {Array<{nome: string, preco: number, unidade: string}>}
+ */
+export function parseEncarte(texto) {
+  if (!texto || typeof texto !== "string") return [];
+
+  const linhas = texto
     .split(/\r?\n/)
-    .map(l => l.trim())
-    .filter(l => l.length > 0 && !REGEX_DATAS_OU_CNPJ.test(l));
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
-  const produtosExtraidos = [];
-  let bufferNome = [];
+  const ofertas = [];
 
-  for (let i = 0; i < linhas.length; i++) {
-    const linhaAtual = linhas[i];
-
-    // Verifica se a linha contém um preço (Ancoragem)
-    const matchPreco = linhaAtual.match(REGEX_PRECO);
+  linhas.forEach((linha) => {
+    const matchPreco = linha.match(PRECO_REGEX);
 
     if (matchPreco) {
-      const precoNum = converterParaNumero(matchPreco[1]);
+      const precoString = matchPreco[1].replace(".", "").replace(",", ".");
+      const preco = parseFloat(precoString);
 
-      // Remove o texto do preço da linha para analisar o restante
-      const textoRestanteLinha = linhaAtual.replace(matchPreco[0], "").trim();
+      if (!isNaN(preco) && preco > 0) {
+        // Extrai o nome removendo a parte do preço
+        let nome = linha.replace(matchPreco[0], "").trim();
 
-      if (textoRestanteLinha.length > 0) {
-        bufferNome.push(textoRestanteLinha);
-      }
+        // Tenta capturar a unidade
+        const matchUnidade = nome.match(UNIDADE_REGEX);
+        const unidade = matchUnidade ? matchUnidade[1].toLowerCase() : "un";
 
-      // Junta as linhas do buffer acumulado para formar o nome do produto
-      let nomeCandidato = bufferNome.join(" ").trim();
-      
-      // Tenta extrair unidade de medida (ex: 500g, 1kg, 2L, Pack C/6)
-      const matchUnidade = nomeCandidato.match(REGEX_UNIDADE);
-      const unidade = matchUnidade ? matchUnidade[1] : null;
+        // Limpa caracteres especiais residuais do nome
+        nome = nome
+          .replace(/[^\w\sÀ-ÿ\-]/gi, "")
+          .replace(/\s+/g, " ")
+          .trim();
 
-      // Sanitiza o nome final tirando palavras da blacklist e caracteres desnecessários
-      const nomeLimpo = sanitizarNomeProduto(nomeCandidato);
-
-      // Validação: Aceita apenas se tiver um nome válido (ao menos 3 letras)
-      if (validarProduto(nomeLimpo, precoNum)) {
-        produtosExtraidos.push({
-          nome: nomeLimpo,
-          preco: precoNum,
-          unidade: unidade
-        });
-      }
-
-      // Limpa o buffer para o próximo produto
-      bufferNome = [];
-    } else {
-      // Se a linha não contém preço, ela provavelmente é parte do nome do produto seguinte
-      if (!isLinhaRuido(linhaAtual)) {
-        bufferNome.push(linhaAtual);
+        if (nome.length >= 3) {
+          ofertas.push({
+            nome,
+            preco,
+            unidade
+          });
+        }
       }
     }
-  }
-
-  return removerDuplicados(produtosExtraidos);
-}
-
-/**
- * Converte string no formato "21,90" ou "1.250,50" para number (float)
- */
-function converterParaNumero(strPreco) {
-  const limpo = strPreco.replace(/\./g, "").replace(",", ".");
-  return parseFloat(limpo);
-}
-
-/**
- * Filtra palavras institucionais e pontuações soltas
- */
-function sanitizarNomeProduto(nome) {
-  let resultado = nome
-    .replace(/[^\w\sÁ-ÿ]/gi, " ") // Remove caracteres especiais extras
-    .replace(/\s+/g, " ");        // Remove espaços duplos
-
-  // Remove termos institucionais se estiverem no início do nome
-  BLACKLIST_PALAVRAS.forEach(termo => {
-    const regexTermo = new RegExp(`^${termo}\\b`, "gi");
-    resultado = resultado.replace(regexTermo, "");
   });
 
-  return resultado.trim();
+  return ofertas;
 }
 
 /**
- * Verifica se a linha isolada é apenas ruído promocional
+ * Função utilitária unificada: recebe um arquivo PDF ou texto e retorna as ofertas extraídas.
+ * @param {File|string} input 
+ * @returns {Promise<Array<{nome: string, preco: number, unidade: string}>>}
  */
-function isLinhaRuido(linha) {
-  const linhaLower = linha.toLowerCase();
-  if (linha.length < 3) return true;
-  return BLACKLIST_PALAVRAS.some(palavra => linhaLower.includes(palavra) && linha.length < 25);
-}
+export async function parseEncarteArquivoOuTexto(input) {
+  let texto = "";
 
-/**
- * Regras de validação para descartar falsos positivos
- */
-function validarProduto(nome, preco) {
-  if (!nome || nome.length < 3) return false;
-  if (isNaN(preco) || preco <= 0.10 || preco > 5000) return false; // Preços irrealistas de mercado
-  if (/^\d+$/.test(nome)) return false; // Nome contendo apenas números
-  return true;
-}
-
-/**
- * Remove produtos idênticos capturados no mesmo bloco
- */
-function removerDuplicados(lista) {
-  const mapa = new Map();
-  for (const item of lista) {
-    const chave = `${item.nome.toLowerCase()}_${item.preco}`;
-    if (!mapa.has(chave)) {
-      mapa.set(chave, item);
+  if (typeof input === "string") {
+    texto = input;
+  } else if (input instanceof File) {
+    if (input.type === "application/pdf" || input.name.endsWith(".pdf")) {
+      texto = await extrairTextoDePDF(input);
+    } else {
+      throw new Error("Formato de arquivo não suportado diretamente. Use PDF ou o leitor de fotos OCR.");
     }
   }
-  return Array.from(mapa.values());
+
+  return parseEncarte(texto);
 }
+
+export default {
+  extrairTextoDePDF,
+  parseEncarte,
+  parseEncarteArquivoOuTexto,
+};
