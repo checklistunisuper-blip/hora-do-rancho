@@ -11,6 +11,7 @@ import { storageService } from "./services/storageService.js";
 import * as homePage from "./pages/home.js";
 import * as mapaPage from "./pages/mapa.js";
 import * as ofertasPage from "./pages/ofertas.js";
+import * as importarOfertasPage from "./pages/importar-ofertas.js";
 import * as comparadorPage from "./pages/comparador.js";
 import * as comparadorFotosPage from "./pages/comparador-fotos.js";
 import * as ranchoPage from "./pages/rancho.js";
@@ -39,6 +40,7 @@ function registerPage(path, pageModule) {
 registerPage("/", homePage);
 registerPage("/mapa", mapaPage);
 registerPage("/ofertas", ofertasPage);
+registerPage("/importar-ofertas", importarOfertasPage);
 registerPage("/comparador", comparadorPage);
 registerPage("/comparador-fotos", comparadorFotosPage);
 registerPage("/rancho", ranchoPage);
