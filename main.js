@@ -6,9 +6,7 @@
 
 import { Router } from "./utils/router.js";
 import { bottomNav } from "./components/bottomNav.js";
-
-// Rota ajustada para a localização exata do storageService
-import { storageService } from "./services/offerProviders/storageService.js";
+import { storageService } from "./services/storageService.js";
 
 import * as homePage from "./pages/home.js";
 import * as mapaPage from "./pages/mapa.js";
