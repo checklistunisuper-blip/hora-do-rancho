@@ -1,6 +1,6 @@
-import { storageService } from "../services/storageService.js";
-import { processarTextoEncarte } from "../utils/encarteParser.js";
-import { parseOcrText } from "../utils/ocrParser.js";
+import { storageService } from "../src/services/storageService.js";
+import { processarTextoEncarte } from "../src/utils/encarteParser.js";
+import { parseOcrText } from "../src/utils/ocrParser.js";
 
 /**
  * Renderiza o HTML da página de importação
