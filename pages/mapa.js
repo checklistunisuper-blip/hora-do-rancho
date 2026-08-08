@@ -57,7 +57,7 @@ export async function afterRender(router) {
   
   let markets = [];
   try {
-    markets = await Promise.resolve(marketsService.findNearby(userLat, userLng));
+    markets =markets = await Promise.resolve(marketsService.findNearby(userLat, userLng, radius));
   } catch (err) {
     console.error("Erro ao buscar mercados próximos:", err);
     markets = [];
