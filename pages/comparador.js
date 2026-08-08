@@ -15,6 +15,10 @@ export async function render({ produto } = {}) {
         <button type="submit" class="btn btn--primary">COMPARAR</button>
       </form>
 
+      <a href="#/comparador-fotos" class="btn btn--outline btn--block" style="margin-bottom:14px;">
+        📷 Não achou? Comparar por foto de encarte
+      </a>
+
       <div id="comparador-resultado">
         ${produto ? "" : `<p class="muted">Digite um produto para comparar preços entre os mercados próximos.</p>`}
       </div>
@@ -38,9 +42,13 @@ export async function afterRender(router, params) {
 
     const mercados = {};
     for (const oferta of comparativo.ofertas) {
-      if (!mercados[oferta.mercadoId]) {
+      if (oferta.mercadoId && !mercados[oferta.mercadoId]) {
         mercados[oferta.mercadoId] = await marketsService.getById(oferta.mercadoId);
       }
+    }
+
+    function nomeDoMercado(oferta) {
+      return mercados[oferta.mercadoId]?.nome || oferta.mercadoNome || "Mercado";
     }
 
     resultadoEl.innerHTML = `
@@ -50,12 +58,12 @@ export async function afterRender(router, params) {
         <div class="comparador-resumo__item comparador-resumo__item--good">
           <span class="label">Menor preço</span>
           <strong>${formatarMoeda(comparativo.menorPreco.preco)}</strong>
-          <small>${mercados[comparativo.menorPreco.mercadoId]?.nome || ""}</small>
+          <small>${nomeDoMercado(comparativo.menorPreco)}</small>
         </div>
         <div class="comparador-resumo__item">
           <span class="label">Maior preço</span>
           <strong>${formatarMoeda(comparativo.maiorPreco.preco)}</strong>
-          <small>${mercados[comparativo.maiorPreco.mercadoId]?.nome || ""}</small>
+          <small>${nomeDoMercado(comparativo.maiorPreco)}</small>
         </div>
         <div class="comparador-resumo__item comparador-resumo__item--orange">
           <span class="label">Você economiza</span>
@@ -67,17 +75,19 @@ export async function afterRender(router, params) {
       <h3 class="section-title">Ranking: do mais barato ao mais caro</h3>
       <ol class="comparador-lista comparador-lista--ranking">
         ${comparativo.ofertas
-          .map(
-            (o, index) => `
-          <li class="comparador-lista__item ${o.mercadoId === comparativo.mercadoRecomendadoId ? "comparador-lista__item--recomendado" : ""}">
+          .map((o, index) => {
+            const fonteTexto =
+              o.fonte === "scraped-feed" ? " · preço real" : o.fonte === "foto-manual" ? " · via foto" : "";
+            return `
+          <li class="comparador-lista__item ${o.id === comparativo.menorPreco.id ? "comparador-lista__item--recomendado" : ""}">
             <span class="comparador-lista__posicao">${index + 1}º</span>
             <div class="comparador-lista__info">
-              <strong>${mercados[o.mercadoId]?.nome || "Mercado"}</strong>
-              <p class="muted">${o.marca || ""} ${o.unidade ? "· " + o.unidade : ""}${o.fonte === "scraped-feed" ? " · preço real" : ""}</p>
+              <strong>${nomeDoMercado(o)}</strong>
+              <p class="muted">${o.marca || ""} ${o.unidade ? "· " + o.unidade : ""}${fonteTexto}</p>
             </div>
             <span class="offer-card__price">${formatarMoeda(o.preco)}</span>
-          </li>`
-          )
+          </li>`;
+          })
           .join("")}
       </ol>
     `;
