@@ -80,7 +80,7 @@ export function afterRender(router) {
 
       if (statusEl) statusEl.textContent = "Identificando endereço...";
       const endereco = await geolocationService.reverseGeocode(lat, lng);
-      
+
       if (storageService?.setPreference) {
         storageService.setPreference("localizacao", endereco);
       }
@@ -116,27 +116,51 @@ export function afterRender(router) {
       locationDisplay.innerHTML = `<p>📍 ${textoBairro}${dados.municipio} - ${dados.estado}</p>`;
     }
 
-    // Tenta obter as coordenadas (latitude/longitude) a partir do texto informado
+    // IMPORTANTE: a busca por mercados próximos depende de lat/lng atualizados.
+    // Se a geocodificação falhar (ou não retornar coordenadas), a "posicao"
+    // antiga NÃO pode continuar valendo — senão o app mostra mercados do
+    // bairro anterior mesmo depois do usuário trocar de local.
+    if (btnBuscar) btnBuscar.disabled = true;
+    if (statusEl) statusEl.textContent = "Localizando esse endereço...";
+
+    let coordsAtualizadas = false;
+
     if (geolocationService?.geocodeAddress) {
       try {
         const query = `${dados.bairro ? dados.bairro + ", " : ""}${dados.municipio}, ${dados.estado}`;
         const coords = await geolocationService.geocodeAddress(query);
-        if (coords && storageService?.setPreference) {
-          storageService.setPreference("posicao", coords);
+        const lat = coords?.latitude ?? coords?.lat;
+        const lng = coords?.longitude ?? coords?.lng;
+
+        if (lat && lng && storageService?.setPreference) {
+          storageService.setPreference("posicao", { latitude: lat, longitude: lng });
+          coordsAtualizadas = true;
         }
       } catch (err) {
         console.warn("Não foi possível geocodificar o endereço manual:", err);
       }
     }
 
-    if (statusEl) statusEl.textContent = "Localização manual salva com sucesso!";
-    if (btnBuscar) btnBuscar.disabled = false;
+    if (coordsAtualizadas) {
+      if (statusEl) statusEl.textContent = "Localização manual salva com sucesso!";
+      if (btnBuscar) btnBuscar.disabled = false;
+    } else {
+      // Limpa a posição antiga para não deixar o app buscando no lugar errado
+      if (storageService?.setPreference) {
+        storageService.setPreference("posicao", null);
+      }
+      if (statusEl) {
+        statusEl.textContent =
+          "Não consegui localizar esse endereço no mapa. Confira o bairro/município digitado, ou use o GPS.";
+      }
+      if (btnBuscar) btnBuscar.disabled = true;
+    }
   });
 
   // 3. Avançar para a próxima tela
   btnBuscar?.addEventListener("click", async () => {
     const pos = storageService?.getPreference ? storageService.getPreference("posicao") : null;
-    
+
     if (statusEl) statusEl.textContent = "Buscando mercados e ofertas...";
     btnBuscar.disabled = true;
 
@@ -149,9 +173,9 @@ export function afterRender(router) {
       const lng = pos?.longitude ?? pos?.lng;
 
       if (lat && lng && marketsService?.findNearby) {
-        await Promise.resolve(marketsService.findNearby(lat, lng));
+        await Promise.resolve(marketsService.findNearby(lat, lng, APP_CONFIG?.searchRadiusKm || 10));
       }
-      
+
       if (router && typeof router.navigate === "function") {
         router.navigate("/mapa");
       } else {
